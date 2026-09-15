@@ -1,9 +1,8 @@
 # Gold-Rush-Exchange
-# Sports Prediction & Social Platform
 
 ## Project Overview
 
-Our project is a social platform designed for college students and sports fans to interact with friends through sports predictions and community discussions.
+Our project is a social platform designed for UNCC students and sports fans to interact with friends through sports predictions and community discussions.
 
 Users can make predictions on upcoming sporting events using **reputation points instead of real money**, discuss games with other users, create posts, follow friends, and compete on leaderboards. Users can build their reputation through successful predictions and community participation.
 
@@ -260,10 +259,10 @@ This project is developed by a student team as part of a university software dev
 
 Team members:
 
-* [Team Member 1]
-* [Team Member 2]
-* [Team Member 3]
-* [Team Member 4]
+* William Rodgers - Project Manager
+* Jacob Ware - Scrum Master
+* Anson Jiang - Developer
+
 
 ---
 
