@@ -1,3 +1,28 @@
 {
-    "predictions": []
+    "predictions": [
+        {
+            "prediction_id": 1,
+            "username": "will rodgers",
+            "game": "UNCC Football This Weekend",
+            "prediction": "Loss",
+            "points": 100,
+            "result": "Pending"
+        },
+        {
+            "prediction_id": 2,
+            "username": "Jacob Ware",
+            "game": "UNCC Basketball Today",
+            "prediction": "Win",
+            "points": 200,
+            "result": "Pending"
+        },
+        {
+            "prediction_id": 3,
+            "username": "Anson Jiang",
+            "game": "Will it rain today",
+            "prediction": "Yes",
+            "points": 500,
+            "result": "Pending"
+        }
+    ]
 }
