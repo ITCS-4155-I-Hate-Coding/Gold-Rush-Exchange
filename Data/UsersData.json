@@ -1,0 +1,19 @@
+{
+    "users": [
+        {
+            "username": "will rodgers",
+            "email": "wrodger1@charlotte.edu",
+            "password": "ab741c84cdcb9ef33678dd8ac091c0d36eb34561b220d5e096c5aec2e70a29ee"
+        },
+        {
+            "username": "Jacob Ware",
+            "email": "jware13@charlotte.edu",
+            "password": "05ceef3b2fa84d86af23ffc6a18b2819b76a6efd687127159a54211d55560322"
+        },
+        {
+            "username": "ajiang",
+            "email": "ajiang@charlotte.edu",
+            "password": "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5"
+        }
+    ]
+}
