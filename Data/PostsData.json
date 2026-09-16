@@ -1,3 +1,22 @@
 {
-    "posts": []
+    "posts": [
+        {
+            "post_id": 1,
+            "username": "ajiang",
+            "content": "what is the weather today",
+            "likes": 0
+        },
+        {
+            "post_id": 2,
+            "username": "ajiang",
+            "content": "what does game started",
+            "likes": 0
+        },
+        {
+            "post_id": 3,
+            "username": "where is dining hall",
+            "content": "where si dining hall",
+            "likes": 0
+        }
+    ]
 }
