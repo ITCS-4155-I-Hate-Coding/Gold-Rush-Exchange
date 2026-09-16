@@ -1,4 +1,4 @@
-# Gold-Rush-Exchangebackend2
+# Gold-Rush-Exchange
 
 ## Overview
 
