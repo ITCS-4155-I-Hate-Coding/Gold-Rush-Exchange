@@ -1,3 +1,25 @@
 {
-    "comments": []
+    "comments": [
+        {
+            "comment_id": 1,
+            "post_id": 1,
+            "username": "jware13",
+            "content": "thats cool",
+            "likes": 1
+        },
+        {
+            "comment_id": 2,
+            "post_id": 2,
+            "username": "jwaer13",
+            "content": "its pretty warm out today isnt it",
+            "likes": 0
+        },
+        {
+            "comment_id": 3,
+            "post_id": 3,
+            "username": "jware13",
+            "content": "anybody going to the game?",
+            "likes": 0
+        }
+    ]
 }
