@@ -18,9 +18,9 @@ When a user first visits Gold-Rush-Exchange, they can create an account.
 
 Users provide:
 
-* Username
-* Charlotte email address
-* Password
+- Username
+- Charlotte email address
+- Password
 
 For the current version, users must use a university email ending in:
 
@@ -28,7 +28,7 @@ For the current version, users must use a university email ending in:
 @charlotte.edu
 ```
 
-After creating an account, the user can log in and access the rest of the platform.
+After creating an account, the user can log in and access the rest of the platform. If no valid email, a message will be given instructing them to try again.
 
 ---
 
@@ -38,11 +38,12 @@ After logging in, users are taken to the main page.
 
 The home page allows users to see:
 
-* Upcoming sporting events
-* Popular predictions
-* Trending posts
-* Recent activity from people they follow
-* Leaderboard information
+- Upcoming sporting events
+- Popular predictions
+- Trending posts
+- Recent activity from people they follow
+- Leaderboard information
+- Profile
 
 This gives users a quick overview of what is happening on the platform.
 
@@ -54,11 +55,11 @@ Users can browse upcoming games and sporting events.
 
 Selecting a game takes the user to its game page, where they can see information such as:
 
-* Teams playing
-* Game date and time
-* Available predictions
-* Community predictions
-* Related discussions
+- Teams playing
+- Game date and time
+- Available predictions
+- Community predictions
+- Related discussions
 
 ---
 
@@ -84,8 +85,8 @@ No real money is involved.
 
 After the game is completed, the prediction is marked as either correct or incorrect.
 
-* Correct prediction → User gains reputation points
-* Incorrect prediction → User loses reputation points
+- Correct prediction → User gains reputation points
+- Incorrect prediction → User loses reputation points
 
 Users can view their prediction results in their prediction history.
 
@@ -97,13 +98,13 @@ Users can open their prediction history to see how they have performed over time
 
 The history can show:
 
-* Previous predictions
-* Wins
-* Losses
-* Prediction accuracy
-* Reputation gained
-* Reputation lost
-* Winning streaks
+- Previous predictions
+- Wins
+- Losses
+- Prediction accuracy
+- Reputation gained
+- Reputation lost
+- Winning streaks
 
 This allows users to track how successful they have been with their predictions.
 
@@ -122,11 +123,9 @@ Their defense has looked really good recently.
 
 Posts can be about:
 
-* Games
-* Teams
-* Predictions
-* Sports news
-* Discussions with other users
+- Games and Teams news and predictions
+- Campus news or events
+- Discussions with other users
 
 ---
 
@@ -136,12 +135,12 @@ Users can interact with posts and other members of the community.
 
 They can:
 
-* Like posts
-* Comment on posts
-* Reply to comments
-* Follow other users
-* View friends' activity
-* Discuss predictions
+- Like posts
+- Comment on posts
+- Reply to comments
+- Follow other users
+- View friends' activity
+- Discuss predictions
 
 Users can also receive reputation for participating in the community.
 
@@ -155,10 +154,10 @@ After following someone, their activity can appear in the user's feed.
 
 For example, users can see when someone they follow:
 
-* Makes a prediction
-* Creates a post
-* Participates in a discussion
-* Reaches an achievement
+- Makes a prediction
+- Creates a post
+- Participates in a discussion
+- Reaches an achievement
 
 Users can also compare their prediction performance with their friends.
 
@@ -184,11 +183,11 @@ Allows users to see recent performance over different time periods.
 
 Statistics can include:
 
-* Reputation
-* Prediction accuracy
-* Total predictions
-* Winning streaks
-* Wins and losses
+- Reputation
+- Prediction accuracy
+- Total predictions
+- Winning streaks
+- Wins and losses
 
 ---
 
@@ -198,10 +197,10 @@ Users can earn achievements by reaching different milestones.
 
 Examples include:
 
-* **10 Prediction Streak**
-* **100 Predictions**
-* **Top 10 Weekly**
-* Community participation milestones
+- **10 Prediction Streak**
+- **100 Predictions**
+- **Top 10 Weekly**
+- Community participation milestones
 
 Achievements give users additional goals to work toward while using the platform.
 
@@ -213,11 +212,11 @@ Users receive notifications when something important happens to their account.
 
 Notifications can include:
 
-* Someone liking their post
-* Someone commenting on their post
-* A friend making a prediction
-* A prediction being completed
-* A change in leaderboard position
+- Someone liking their post
+- Someone commenting on their post
+- A friend making a prediction
+- A prediction being completed
+- A change in leaderboard position
 
 ---
 
@@ -227,9 +226,9 @@ Users can report posts or comments that violate the community rules.
 
 Users can also:
 
-* Block other users
-* Mute other users
-* Report inappropriate content
+- Block other users
+- Mute other users
+- Report inappropriate content
 
 Moderators can review reported content and take appropriate action.
 
@@ -262,31 +261,31 @@ The project uses several technologies to build the application.
 
 ### Languages
 
-* **[Add language]** – [What it is used for]
-* **[Add language]** – [What it is used for]
-* **[Add language]** – [What it is used for]
+- **[Add language]** – [What it is used for]
+- **[Add language]** – [What it is used for]
+- **[Add language]** – [What it is used for]
 
 ### Frameworks / Libraries
 
-* **[Add framework]** – Frontend development
-* **[Add framework]** – Backend development
-* **[Add library]** – Additional application functionality
+- **[Add framework]** – Frontend development
+- **[Add framework]** – Backend development
+- **[Add library]** – Additional application functionality
 
 ### Database
 
-* **[Database name]** – Stores users, predictions, posts, comments, games, and other application data.
+- **[Database name]** – Stores users, predictions, posts, comments, games, and other application data.
 
 ### Development Tools
 
-* Git
-* GitHub
-* VS Code
-* [Other tools used by the team]
+- Git
+- GitHub
+- VS Code
+- [Other tools used by the team]
 
 ### External Services
 
-* **Sports Data API** – Provides game, team, schedule, and result information.
-* **[Authentication/API/etc.]** – [Purpose]
+- **Sports Data API** – Provides game, team, schedule, and result information.
+- **[Authentication/API/etc.]** – [Purpose]
 
 ---
 
@@ -294,21 +293,21 @@ The project uses several technologies to build the application.
 
 Gold-Rush-Exchange currently focuses on:
 
-* User authentication
-* User profiles
-* Sports predictions
-* Virtual reputation points
-* Prediction history
-* Social posts
-* Comments and replies
-* Likes
-* Following
-* Leaderboards
-* Game and team pages
-* Trending content
-* Achievements
-* Notifications
-* Content reporting and moderation
+- User authentication
+- User profiles
+- Sports predictions
+- Virtual reputation points
+- Prediction history
+- Social posts
+- Comments and replies
+- Likes
+- Following
+- Leaderboards
+- Game and team pages
+- Trending content
+- Achievements
+- Notifications
+- Content reporting and moderation
 
 ---
 
@@ -333,12 +332,12 @@ The primary users are **college students and sports fans** who want to discuss s
 
 Other potential stakeholders include:
 
-* Students
-* Sports fans
-* Student organizations
-* University communities
-* Moderators
-* Sports data providers
+- Students
+- Sports fans
+- Student organizations
+- University communities
+- Moderators
+- Sports data providers
 
 ---
 
@@ -346,9 +345,9 @@ Other potential stakeholders include:
 
 This project was developed as a university software development project.
 
-* **William Rodgers** – Project Manager
-* **Jacob Ware** – Scrum Master
-* **Anson Jiang** – Developer
+- **William Rodgers** – Project Manager
+- **Jacob Ware** – Scrum Master
+- **Anson Jiang** – Developer
 
 ---
 
@@ -365,4 +364,3 @@ Gold-Rush-Exchange is being developed as a student software project. Features an
 Gold-Rush-Exchange is designed for educational and entertainment purposes.
 
 Predictions use **virtual reputation points** and do not involve real-money wagering or gambling.
-
