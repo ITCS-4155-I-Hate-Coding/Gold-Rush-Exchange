@@ -273,19 +273,20 @@ The project uses several technologies to build the application.
 
 ### Database
 
-- **[Database name]** – Stores users, predictions, posts, comments, games, and other application data.
+- **PostgreSQL** – Stores users predictions, posts, and comments
+<!-- Stores users, predictions, posts, comments, games, and other application data. -->
 
 ### Development Tools
 
 - Git
 - GitHub
 - VS Code
-- [Other tools used by the team]
+<!-- - [Other tools used by the team] -->
 
 ### External Services
 
-- **Sports Data API** – Provides game, team, schedule, and result information.
-- **[Authentication/API/etc.]** – [Purpose]
+- **Sports Data API** – [implementing soon] Provides game, team, schedule, and result information.
+<!-- - **[Authentication/API/etc.]** – [Purpose] -->
 
 ---
 
@@ -294,20 +295,25 @@ The project uses several technologies to build the application.
 Gold-Rush-Exchange currently focuses on:
 
 - User authentication
-- User profiles
 - Sports predictions
-- Virtual reputation points
-- Prediction history
-- Social posts
-- Comments and replies
-- Likes
+- Prediction settlement
+- social posts
+- comments
+- likes (posts and comments)
+
+Planned for later:
+
+- User profiles
+- Reputation points totals
+- Predictions history
+- Comment replies (threaded form)
 - Following
 - Leaderboards
-- Game and team pages
+- Game/Team pages
 - Trending content
 - Achievements
 - Notifications
-- Content reporting and moderation
+- Content moderation
 
 ---
 
