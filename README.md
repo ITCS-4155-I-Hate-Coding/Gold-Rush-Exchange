@@ -273,7 +273,7 @@ The project uses several technologies to build the application.
 
 ### Database
 
-- **PostgreSQL** – Stores users predictions, posts, and comments
+- **PostgreSQL** – Stores users login, predictions, posts, and comments
 <!-- Stores users, predictions, posts, comments, games, and other application data. -->
 
 ### Development Tools
