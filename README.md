@@ -261,15 +261,15 @@ The project uses several technologies to build the application.
 
 ### Languages
 
-- **[Add language]** – [What it is used for]
-- **[Add language]** – [What it is used for]
-- **[Add language]** – [What it is used for]
+- **Python** – Backend application logic and API
+- **SQL** – Used for queries to Postegre
+- **HTML, CSS, JS** – Frontend pages, styling, and UI
 
-### Frameworks / Libraries
+<!-- ### Frameworks / Libraries
 
 - **[Add framework]** – Frontend development
 - **[Add framework]** – Backend development
-- **[Add library]** – Additional application functionality
+- **[Add library]** – Additional application functionality -->
 
 ### Database
 
