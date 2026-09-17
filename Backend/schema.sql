@@ -10,7 +10,7 @@ create table if not exists users (
     id serial primary key, -- auto incrementing id for each user
     username text not null unique, -- unique username for each user
     email text not null unique, -- will have to implement email validation either here or in the backend
-    password_hash text not null, -- will use bcrypt to hash the password before storing it in the database
+    password_hash varchar(60) not null, -- will use bcrypt to hash the password before storing it in the database
     created_at timestamptz not null default now() -- timestamp for when the user was created relative to UTC time
 );
 
@@ -19,6 +19,6 @@ create table if not exists predictions (
     user_id int not null references users(id) on delete cascade, -- for auto delete
     game text not null, -- the game for which the prediction is made
     prediction_text text not null, -- the actual prediction text
-    
+
     created_at timestamptz not null default now() -- timestamp for when the prediction was created relative to UTC time
 );
