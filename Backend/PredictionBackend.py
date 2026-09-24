@@ -1,59 +1,76 @@
 import json
 from pathlib import Path
-
-PREDICTIONS_FILE = Path(__file__).parent.parent / "Data" / "PredictionsData.json"
-
-
-def load_predictions():
-    if not PREDICTIONS_FILE.exists():
-        return {"predictions": []}
-
-    with open(PREDICTIONS_FILE, "r", encoding="utf-8") as file:
-        return json.load(file)
+from db import query
 
 
-def save_predictions(data):
-    with open(PREDICTIONS_FILE, "w", encoding="utf-8") as file:
-        json.dump(data, file, indent=4)
+def create_prediction(user_id, game, prediction_text, points):
+    # reject empty game/prediction text before it gets to the db
+    if not game or not prediction_text:
+        return False, "Game and prediction are required"
 
+    # points has to be positive
+    if points is None or points <= 0:
+        return False, "Points wagered must be more than 0"
 
-def create_prediction(username, game, prediction, points):
-    data = load_predictions()
-
-    new_id = len(data["predictions"]) + 1
-
-    new_prediction = {
-        "prediction_id": new_id,
-        "username": username,
-        "game": game,
-        "prediction": prediction,
-        "points": points,
-        "result": "Pending"
-    }
-
-    data["predictions"].append(new_prediction)
-    save_predictions(data)
-
+    # No result column value is given (it will be pending at first)
+    query(
+        "INSERT INTO predictions (user_id, game, prediction_text, points) VALUES (%s, %s, %s, %s)",
+        (user_id, game, prediction_text, points),
+        fetch=False,
+    )
     return True, "Prediction created successfully."
 
 
-def view_predictions():
-    data = load_predictions()
 
-    if not data["predictions"]:
-        print("No predictions have been created yet.")
-        return
+# if user_id is given, then only return that users predictions
+# for now in order to test it will return everyones predictions 
+def view_predictions(user_id=None):
 
-    print("\n--- Predictions ---")
+    if user_id is not None:
+        return query(
+            "SELECT * FROM predictions WHERE user_id = %s ORDER BY created_at DESC",
+            (user_id,),
+        )
+    return query("SELECT * FROM predictions ORDER BY created_at DESC")
 
-    for prediction in data["predictions"]:
-        print(f"ID: {prediction['prediction_id']}")
-        print(f"User: {prediction['username']}")
-        print(f"Game: {prediction['game']}")
-        print(f"Prediction: {prediction['prediction']}")
-        print(f"Points: {prediction['points']}")
-        print(f"Result: {prediction['result']}")
-        print("-------------------")
+# mark a pending prediction as win or loss by comparing prediction_text to the actual outcome
+def settle_prediction(prediction_id, actual_outcome):
+    # pull who owns it, what they predicted, how many points wagered, and if it has been settled
+    prediction = query(
+        "SELECT user_id, prediction_text, points, result FROM predictions WHERE id = %s",
+        (prediction_id,),
+        fetchone=True,
+    
+    )
+    if not prediction:
+        return False, "Prediction not found."
+
+    # preventing settling the same prediction twice
+    if prediction["result"] != "pending":
+        return False, f"Prediction was already settled as {prediction['result']}."
+
+    # adjusting prediction_text to be in a more universal format
+    is_correct = prediction["prediction_text"].strip().lower() == actual_outcome.strip().lower()
+    result = "correct" if is_correct else "incorrect"
+
+    # for correct guess; gain wagered points and for a wrong guess you lose them
+    reputation_change = prediction["points"] if is_correct else -prediction["points"]
+
+    # updating the db to lock in the predictions result and another to change the users reputation
+    query(
+        "UPDATE predictions SET result = %s WHERE id = %s",
+        (result, prediction_id),
+        fetch=False
+    )
+    query(
+        "UPDATE users SET reputation = reputation + %s WHERE id = %s",
+        (reputation_change, prediction["user_id"]),
+        fetch=False
+    )
+
+    # confirmation message
+    sign = "+" if reputation_change >= 0 else ""
+    return True, f"Prediction marked as {result} ({sign}{reputation_change} reputation)."
 
 
 if __name__ == "__main__":
