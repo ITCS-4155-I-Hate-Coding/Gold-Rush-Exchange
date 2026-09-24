@@ -1,78 +1,100 @@
+"""
+- Passwords will be hashed using bcrypt insteaf of raw SHA-256 so two users with the same password have different hashes
+- Login uses charlotte email address and not the username (username is still stored and used for display)
+"""
+
 import json
 import hashlib
 import re
+import bcrypt
 from pathlib import Path
+from db import query
 
-# users data.json is located in the data folder
-USERS_FILE = Path(__file__).parent.parent / "Data" / "UsersData.json"
-
-
-def load_users():
-    """Load users from the JSON file."""
-    if not USERS_FILE.exists():
-        return {"users": []}
-
-    with open(USERS_FILE, "r", encoding="utf-8") as file:
-        return json.load(file)
+# matching emails in order to fit the charlotte.edu requirement
+EMAIL_PATTERN = re.compile(r"[A-Za-z0-9._%+-]+@charlotte\.edu$")
 
 
-def save_users(data):
-    """Save users to the JSON file."""
-    with open(USERS_FILE, "w", encoding="utf-8") as file:
-        json.dump(data, file, indent=4)
 
 
-def hash_password(password):
-    """Hash the password before storing it."""
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 
 def valid_charlotte_email(email):
-    """Check that the email uses a @charlotte.edu address."""
-    return bool(re.fullmatch(r"[A-Za-z0-9._%+-]+@charlotte\.edu", email))
+    """
+    Check that the email uses a @charlotte.edu address.
+    the email or "" part prevents null values like an empty field being passed in
+    """
+    return bool(EMAIL_PATTERN.fullmatch(email or ""))
+    
+    # return bool(re.fullmatch(r"[A-Za-z0-9._%+-]+@charlotte\.edu", email))
 
-
+"""Create a new account and save it to users data.json."""
 def create_account(username, email, password):
-    """Create a new account and save it to users data.json."""
+    
     if not username or not email or not password:
         return False, "All fields are required."
-
+    # rejecting anything that isnt a charlotte.edu email
     if not valid_charlotte_email(email):
         return False, "Email must end with @charlotte.edu."
 
-    data = load_users()
+    # data = load_users()
 
-    for user in data["users"]:
-        if user["email"].lower() == email.lower():
-            return False, "An account with this email already exists."
+    # check database for username OR email that is already taken (both are unique in schema.sql
+    existing = query(
+        "SELECT id FROM users WHERE username = %s OR email = %s",
+        (username, email.lower()), # store and compare email in lowercase
+        fetchone=True
+    )
 
-    new_user = {
-        "username": username,
-        "email": email.lower(),
-        "password": hash_password(password)
-    }
+    if existing:
+        return False, "An account with that username or email already exists."
 
-    data["users"].append(new_user)
-    save_users(data)
+    # bcrypt salt hashing
+    password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
-    return True, "Account created successfully."
+    query(
+        "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)",
+        (username, email.lower(), password_hash),
+        fetch=False # INSERT doesnt need to return any rows
+    )
+    return True, "Account created successfully"
 
 
+"""Check the email and password against users data.json."""
+# this login function will be used for testing for now
 def login(email, password):
-    """Check the email and password against users data.json."""
-    data = load_users()
-    password_hash = hash_password(password)
+    success, message, _ = login_and_get_user(email, password)
+    return success, message
 
-    for user in data["users"]:
-        if (
-            user["email"].lower() == email.lower()
-            and user["password"] == password_hash
-        ):
-            return True, f"Login successful. Welcome, {user['username']}!"
+"""
+- Will be used by Flask eventually
+- Loggin in is by email but the session will store the username
+"""
+def login_and_get_user(email, password):
+    # look up account by email
+    user = query(
+            "SELECT id, username, password_hash FROM users WHERE email = %s",
+            (email.lower(),),
+            fetchone=True
+        )
+    if not user:
+        return False, "Invalid email or password", None
 
-    return False, "Invalid email or password."
+    # bcrypt.checkpw will re-hash the typed password then compares it
+    if not bcrypt.checkpw(password.encode("utf-8"), user["password_hash"].encode("utf-8")):
+        return False, "Invalid email or password.", None 
 
+    # Success -> hand back the id and username so the app.py can eventually use to set the session
+    return True, "Login successful.", {"id": user["id"], "username": user["username"]}
+        
 
+def get_user_reputation(user_id):
+    # calling each time the dashboard will load to the reputation shown is current
+    row = query("SELECT reputation FROM users WHERE id = %s", (user_id,), fetchone=True)
+    return row["reputation"] if row else None
+ 
+
+# content below runs when executing this file directly, not when app.py uses it
+# for testing for now
 if __name__ == "__main__":
     print("Gold-Rush-Exchange Login System")
     print("--------------------------------")
