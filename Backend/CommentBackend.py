@@ -1,124 +1,62 @@
 import json
 from pathlib import Path
-
-COMMENTS_FILE = Path(__file__).parent.parent / "Data" / "CommentsData.json"
-
-
-def load_comments():
-    if not COMMENTS_FILE.exists():
-        return {"comments": []}
-
-    with open(COMMENTS_FILE, "r", encoding="utf-8") as file:
-        return json.load(file)
+from db import query
 
 
-def save_comments(data):
-    with open(COMMENTS_FILE, "w", encoding="utf-8") as file:
-        json.dump(data, file, indent=4)
+def create_comment(user_id, post_id, content):
+    # reject any empty comments
+    if not content:
+        return False, "Comment content is required"
+
+    # confirm the post actually exists before attaching a comment to it
+    post = query(
+        "SELECT id FROM posts WHERE id = %s",
+        (post_id, ),
+        fetchone=True
+    )
+    if not post:
+        return False, "That post does not exist"
+
+    query(
+        "INSERT INTO comments (post_id, user_id, content) VALUES (%s, %s, %s)",
+        (post_id, user_id, content),
+        fetch=False
+    )
+
+    return True, "Comment created successfully"
 
 
-def create_comment(username, post_id, content):
-    if not username or not content:
-        return False, "Username and comment content are required."
-
-    data = load_comments()
-    new_id = len(data["comments"]) + 1
-
-    new_comment = {
-        "comment_id": new_id,
-        "post_id": post_id,
-        "username": username,
-        "content": content,
-        "likes": 0
-    }
-
-    data["comments"].append(new_comment)
-    save_comments(data)
-
-    return True, "Comment created successfully."
-
-
+# similar to like_post in PostBackend.py
 def like_comment(comment_id):
-    data = load_comments()
-
-    for comment in data["comments"]:
-        if comment["comment_id"] == comment_id:
-            comment["likes"] += 1
-            save_comments(data)
-            return True, "Comment liked."
-
-    return False, "Comment not found."
+    result = query(
+        "UPDATE comments SET likes = likes + 1 WHERE id = %s RETURNING id",
+        (comment_id,),
+        fetchone=True
+    )
+    if not result:
+        return False, "Comment not found"
+    return True, "Comment liked"
 
 
 def view_comments(post_id):
-    data = load_comments()
-    found = False
+    # using JOIN to pull username with comment to see who said what
+    return query(
+        """
+        SELECT comments.id, comments.content, comments.likes, comments.created_at, users.username FROM comments
+        JOIN users ON users.id = comments.user_id WHERE comments.post_id = %s ORDER BY comments.created_at ASC
+        """,
+        (post_id,),
 
-    print(f"\n--- Comments for Post {post_id} ---")
-
-    for comment in data["comments"]:
-        if comment["post_id"] == post_id:
-            found = True
-            print(f"Comment ID: {comment['comment_id']}")
-            print(f"User: {comment['username']}")
-            print(f"Comment: {comment['content']}")
-            print(f"Likes: {comment['likes']}")
-            print("-------------------")
-
-    if not found:
-        print("No comments found for this post.")
+    )
+    
 
 
+
+  
+
+# testing for now
 if __name__ == "__main__":
     print("Gold-Rush-Exchange Comment System")
     print("---------------------------------")
 
-    while True:
-        print("\n1. Create Comment")
-        print("2. View Comments")
-        print("3. Like Comment")
-        print("4. Exit")
-
-        choice = input("Choose an option: ")
-
-        if choice == "1":
-            username = input("Username: ")
-
-            try:
-                post_id = int(input("Post ID: "))
-            except ValueError:
-                print("Please enter a valid post ID.")
-                continue
-
-            content = input("Comment: ")
-
-            success, message = create_comment(
-                username, post_id, content
-            )
-            print(message)
-
-        elif choice == "2":
-            try:
-                post_id = int(input("Post ID: "))
-            except ValueError:
-                print("Please enter a valid post ID.")
-                continue
-
-            view_comments(post_id)
-
-        elif choice == "3":
-            try:
-                comment_id = int(input("Comment ID to like: "))
-            except ValueError:
-                print("Please enter a valid comment ID.")
-                continue
-
-            success, message = like_comment(comment_id)
-            print(message)
-
-        elif choice == "4":
-            print("Goodbye!")
-            break
-
-        else:
-            print("Invalid option.")
+    
