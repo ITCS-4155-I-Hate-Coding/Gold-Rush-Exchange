@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS comments (
     post_id INT NOT NULL REFERENCES posts(id) ON DELETE CASCADE, -- for auto delete
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- for auto delete
     content TEXT NOT NULL, -- the content of the comment
+    likes INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now() -- timestamp for when the comment was created relative to UTC time
 );
 
