@@ -8,10 +8,11 @@ import LoginBackend as auth
 import PostBackend as posts
 import CommentBackend as comments
 import PredictionBackend as preds
+import os
 
 FRONTEND = Path(__file__).resolve().parent.parent / "Frontend"
 app = Flask(__name__, static_folder=str(FRONTEND), static_url_path="")
-app.secret_key = "change-this-to-a-long-random-string"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-only-change-me")
 
 
 def answer(ok, message):
