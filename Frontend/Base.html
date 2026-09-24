@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gold Rush Exchange</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="Base.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <h1 class="brand">Gold Rush Exchange</h1>
+      <nav class="tabs">
+        <button class="tab active" data-tab="posts">Posts</button>
+        <button class="tab" data-tab="predictions">Predictions</button>
+      </nav>
+      <div class="auth">
+        <span id="userLabel" hidden></span>
+        <span id="repBadge" class="badge" hidden></span>
+        <button id="authBtn" class="btn btn-gold">Log in</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="posts" class="panel">
+      <form id="postForm" class="card" hidden>
+        <textarea id="postBody" placeholder="Share something with the exchange" rows="3" required></textarea>
+        <button class="btn">Post</button>
+      </form>
+      <p class="hint" id="postsHint">Log in to write a post.</p>
+      <div id="postList"></div>
+    </section>
+
+    <section id="predictions" class="panel" hidden>
+      <form id="predForm" class="card" hidden>
+        <input id="predGame" placeholder="Game or event (e.g. 49ers vs. Tulane)" required>
+        <input id="predText" placeholder="Your prediction (e.g. 49ers win)" required>
+        <input id="predPoints" type="number" min="1" placeholder="Reputation points to wager" required>
+        <button class="btn">Submit prediction</button>
+      </form>
+      <p class="hint" id="predHint">Log in to make a prediction.</p>
+      <div id="predList"></div>
+    </section>
+  </main>
+
+  <dialog id="authDialog">
+    <form id="authForm">
+      <h2 id="authTitle">Log in</h2>
+      <input id="username" placeholder="Username" autocomplete="username" hidden>
+      <input id="email" type="email" placeholder="Charlotte email (@charlotte.edu)" autocomplete="email" required>
+      <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+      <p id="authError" class="error" hidden></p>
+      <div class="row">
+        <button class="btn" id="authSubmit" value="submit">Log in</button>
+        <button type="button" class="btn btn-outline" id="authSwitch">Create account</button>
+        <button class="btn btn-link" value="cancel" formnovalidate>Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="Base.js"></script>
+</body>
+</html>

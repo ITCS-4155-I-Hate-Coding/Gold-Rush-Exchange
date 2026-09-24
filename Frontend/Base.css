@@ -1,0 +1,175 @@
+:root {
+  --green: #005035;
+  --green-dark: #003a27;
+  --gold: #a49665;
+  --gold-light: #efe9d6;
+  --bg: #f6f5f1;
+  --ink: #1d2a25;
+  --muted: #62706a;
+  --error: #a3262a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Source Sans 3", system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+/* Header */
+.topbar {
+  background: var(--green);
+  border-bottom: 4px solid var(--gold);
+}
+.topbar-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.brand {
+  margin: 0;
+  padding: .75rem 0;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: #fff;
+}
+.tabs { display: flex; gap: .25rem; align-self: stretch; }
+.tab {
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  color: #d9e4de;
+  font: 600 1rem "Source Sans 3", sans-serif;
+  padding: 0 .9rem;
+  cursor: pointer;
+}
+.tab:hover { color: #fff; }
+.tab.active { color: #fff; border-bottom-color: var(--gold); }
+.auth { margin-left: auto; display: flex; align-items: center; gap: .75rem; color: #fff; }
+
+/* Layout */
+main { max-width: 860px; margin: 1.5rem auto; padding: 0 1rem; }
+.hint { color: var(--muted); }
+
+/* Cards */
+.card {
+  background: #fff;
+  border: 1px solid #dfddd3;
+  border-left: 5px solid var(--green);
+  border-radius: 4px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+.card h3 {
+  margin: 0 0 .25rem;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 1.4rem;
+  color: var(--green);
+}
+.meta { font-size: .85rem; color: var(--muted); margin-bottom: .5rem; }
+.pick {
+  display: inline-block;
+  background: var(--gold-light);
+  border-left: 3px solid var(--gold);
+  padding: .2rem .6rem;
+  font-weight: 600;
+}
+
+/* Comments */
+.comments { margin-top: .75rem; border-top: 1px solid #e6e4da; padding-top: .5rem; }
+.comment { font-size: .95rem; padding: .2rem 0; }
+.comment b { color: var(--green); }
+.comment-form { display: flex; gap: .5rem; margin-top: .5rem; }
+.comment-form input { flex: 1; margin: 0; }
+
+/* Forms */
+input, textarea {
+  width: 100%;
+  font: inherit;
+  padding: .55rem .7rem;
+  margin-bottom: .6rem;
+  border: 1px solid #c9c6b8;
+  border-radius: 4px;
+  background: #fff;
+}
+input:focus, textarea:focus { outline: 2px solid var(--gold); border-color: var(--gold); }
+
+.btn {
+  background: var(--green);
+  color: #fff;
+  border: 2px solid var(--green);
+  border-radius: 4px;
+  padding: .5rem 1rem;
+  font: 600 .95rem "Source Sans 3", sans-serif;
+  cursor: pointer;
+}
+.btn:hover { background: var(--green-dark); border-color: var(--green-dark); }
+.btn-gold { background: var(--gold); border-color: var(--gold); color: #fff; }
+.btn-gold:hover { background: #8b7e52; border-color: #8b7e52; }
+.btn-outline { background: #fff; color: var(--green); }
+.btn-outline:hover { background: var(--gold-light); color: var(--green); }
+.btn-link { background: none; border-color: transparent; color: var(--muted); }
+.btn-link:hover { background: none; color: var(--ink); border-color: transparent; }
+.btn:focus-visible, .tab:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* Login dialog */
+dialog {
+  border: 0;
+  border-top: 5px solid var(--gold);
+  border-radius: 4px;
+  padding: 1.5rem;
+  width: min(380px, 92vw);
+}
+dialog::backdrop { background: rgba(0, 58, 39, .6); }
+dialog h2 {
+  margin: 0 0 1rem;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 1.8rem;
+  color: var(--green);
+}
+.row { display: flex; gap: .5rem; flex-wrap: wrap; }
+.error { color: var(--error); margin: 0 0 .6rem; }
+
+[hidden] { display: none !important; }
+
+@media (max-width: 560px) {
+  .auth { margin-left: 0; width: 100%; padding-bottom: .6rem; }
+  .tabs { order: 3; width: 100%; }
+  .tab { padding: .5rem .9rem; }
+}
+
+/* Additions for posts, likes and predictions */
+.badge {
+  background: var(--gold);
+  color: #fff;
+  font-weight: 600;
+  padding: .15rem .6rem;
+  border-radius: 999px;
+  font-size: .9rem;
+}
+.like {
+  background: none;
+  border: 1px solid #c9c6b8;
+  border-radius: 999px;
+  padding: .1rem .7rem;
+  font: 600 .85rem "Source Sans 3", sans-serif;
+  color: var(--green);
+  cursor: pointer;
+}
+.like:hover { background: var(--gold-light); border-color: var(--gold); }
+.like:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.post-text { white-space: pre-wrap; margin: .25rem 0 .6rem; }
+.pred-row { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.result { font-weight: 600; font-size: .85rem; padding: .1rem .6rem; border-radius: 999px; }
+.result.pending { background: var(--gold-light); color: #6f6238; }
+.result.correct { background: var(--green); color: #fff; }
+.result.incorrect { background: var(--error); color: #fff; }
