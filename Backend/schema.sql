@@ -6,19 +6,51 @@
 -- will be connected to actual database soon
 
 
-create table if not exists users (
-    id serial primary key, -- auto incrementing id for each user
-    username text not null unique, -- unique username for each user
-    email text not null unique, -- will have to implement email validation either here or in the backend
-    password_hash varchar(60) not null, -- will use bcrypt to hash the password before storing it in the database
-    created_at timestamptz not null default now() -- timestamp for when the user was created relative to UTC time
+
+
+-- Users
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY, -- auto incrementing id for each user
+    username TEXT NOT NULL UNIQUE, -- unique username for each user
+    email TEXT NOT NULL UNIQUE, -- will have to implement email validation in the backend
+    password_hash VARCHAR(60) NOT NULL, -- will use bcrypt to hash the password before storing it in the database
+    reputation INT NOT NULL DEFAULT 1000, -- default reputation for new users
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now() -- timestamp for when the user was created relative to UTC time
 );
 
-create table if not exists predictions (
-    id serial primary key, -- auto incrementing id for each prediction
-    user_id int not null references users(id) on delete cascade, -- for auto delete
-    game text not null, -- the game for which the prediction is made
-    prediction_text text not null, -- the actual prediction text
+-- Predictions
+CREATE TABLE IF NOT EXISTS predictions (
+    id SERIAL PRIMARY KEY, -- auto incrementing id for each prediction
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- for auto delete
+    game TEXT NOT NULL, -- the game for which the prediction is made like "Duke vs UNC"
+    prediction_text TEXT NOT NULL, -- the actual prediction text so "Duke will win"
+    points INT NOT NULL CHECK (points > 0), -- the number of points the user is betting on this prediction, must be greater than 0
+    result TEXT NOT NULL DEFAULT 'pending' CHECK (result in ('pending', 'correct', 'incorrect')), -- the result of the prediction, can be 'pending', 'correct', or 'incorrect'
 
-    created_at timestamptz not null default now() -- timestamp for when the prediction was created relative to UTC time
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now() -- timestamp for when the prediction was created relative to UTC time
 );
+
+
+-- Posts
+CREATE TABLE IF NOT EXISTS posts (
+    id SERIAL PRIMARY KEY, -- auto incrementing id for each post
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- for auto delete
+    content TEXT NOT NULL, -- the content of the post
+    likes INTEGER NOT NULL DEFAULT 0, -- the number of likes for the post
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now() -- timestamp for when the post was created relative to UTC time
+);
+
+-- Comments
+CREATE TABLE IF NOT EXISTS comments (
+    id SERIAL PRIMARY KEY, -- auto incrementing id for each comment
+    post_id INT NOT NULL REFERENCES posts(id) ON DELETE CASCADE, -- for auto delete
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- for auto delete
+    content TEXT NOT NULL, -- the content of the comment
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now() -- timestamp for when the comment was created relative to UTC time
+);
+
+-- Indexes for faster lookups
+CREATE INDEX IF NOT EXISTS idx_predictions_user_id ON predictions(user_id); -- speeds up fetching all predictions made by a given user
+CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id); -- speeds up fetching all posts made by a given user
+CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id); -- speeds up loading all comments for a given post
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id); -- speeds up fetching all comments made by a given user
