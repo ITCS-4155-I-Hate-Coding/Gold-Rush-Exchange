@@ -61,7 +61,7 @@ def me():
 # ---------- Posts ----------
 @app.get("/api/posts")
 def get_posts():
-    return jsonify(posts.view_posts())
+    return jsonify(posts.view_posts(session.get("user_id")))
 
 
 @app.post("/api/posts")
@@ -76,13 +76,13 @@ def add_post():
 def like_post(post_id):
     if "user_id" not in session:
         return need_login()
-    return answer(*posts.like_post(post_id))
+    return answer(*posts.like_post(session["user_id"], post_id))
 
 
 # ---------- Comments ----------
 @app.get("/api/posts/<int:post_id>/comments")
 def get_comments(post_id):
-    return jsonify(comments.view_comments(post_id))
+    return jsonify(comments.view_comments(post_id, session.get("user_id")))
 
 
 @app.post("/api/posts/<int:post_id>/comments")
@@ -97,7 +97,7 @@ def add_comment(post_id):
 def like_comment(comment_id):
     if "user_id" not in session:
         return need_login()
-    return answer(*comments.like_comment(comment_id))
+    return answer(*comments.like_comment(session["user_id"], comment_id))
 
 
 # ---------- Predictions ----------
