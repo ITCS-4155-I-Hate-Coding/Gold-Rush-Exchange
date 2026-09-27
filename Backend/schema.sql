@@ -50,6 +50,22 @@ CREATE TABLE IF NOT EXISTS comments (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now() -- timestamp for when the comment was created relative to UTC time
 );
 
+-- Post likes (tracks which user liked which post so a second click unlikes instead of double-counting)
+CREATE TABLE IF NOT EXISTS post_likes (
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    post_id INT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, post_id)
+);
+
+-- Comment likes (same idea as post_likes)
+CREATE TABLE IF NOT EXISTS comment_likes (
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    comment_id INT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, comment_id)
+);
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_predictions_user_id ON predictions(user_id); -- speeds up fetching all predictions made by a given user
 CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id); -- speeds up fetching all posts made by a given user
