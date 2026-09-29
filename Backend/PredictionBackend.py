@@ -3,22 +3,48 @@ from pathlib import Path
 from db import query
 
 
-def create_prediction(user_id, game, prediction_text, points):
+def create_prediction(user_id, game_id, pick, points):
     # reject empty game/prediction text before it gets to the db
-    if not game or not prediction_text:
-        return False, "Game and prediction are required"
+    if not game_id or pick not in ("home", "away") :
+        return False, "A game and a pick (home or away) are required."
 
     # points has to be positive
     if points is None or points <= 0:
         return False, "Points wagered must be more than 0"
 
+    game = query("SELECT home_team, away_team FROM games WHERE id = %s", (game_id,), fetchone=True)
+    if not game:
+        return False, "That game does not exist"
+
+    display_game = f"{game['away_team']} @ {game['home_team']}"
+    display_pick = game["home_team"] if pick == "home" else game["away_team"]
+
     # No result column value is given (it will be pending at first)
     query(
-        "INSERT INTO predictions (user_id, game, prediction_text, points) VALUES (%s, %s, %s, %s)",
-        (user_id, game, prediction_text, points),
+        "INSERT INTO predictions (user_id, game, prediction_text, points, game_id, pick) VALUES (%s, %s, %s, %s, %s, %s)",
+        (user_id, display_game, f"{display_pick} wins", game_id, pick, points),
         fetch=False,
     )
     return True, "Prediction created successfully."
+
+
+# Auto settle the predicitons
+def auto_settle_finished_games():
+    pending = query(
+        "SELECT predictions.id, predictions.user_id, predictions.pick, predictions.points, games.home_score, games.away_score" \
+        " FROM predictions JOIN games on games.id = predictions.game_id WHERE predictions.result = 'pending' AND games.status = 'final'"
+    )
+    settled = 0
+    for p in pending:
+        if p["home_score"] == p["away_score"]:
+            continue # not guessing on ties
+        actual_winner = "home" if p["home_score"] > p["away_score"] else "away"
+        result = "correct" if p["pick"] == actual_winner else "incorrect"
+        change = p["points"] if result == "correct" else -p["points"]
+        query("UPDATE predictions SET result = %s WHERE id = %s", (result, p["id"]), fetch=False)
+        query("UPDATE users SET reputation = reputation + %s WHERE id = %s", (change, p["user_id"]), fetch=False)
+        settled += 1
+    return settled
 
 
 
