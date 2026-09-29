@@ -83,8 +83,8 @@ CREATE TABLE IF NOT EXISTS games (
 
 -- table alterations for future additions to schema, app, and backend sections
 
--- ALTER TABLE predictions ADD COLUMN IF NOT EXISTS game_id INT REFERENCES games(id) ON DELETE CASCADE;
--- ALTER TABLE predictions ADD COLUMN IF NOT EXISTS pick TEXT CHECK (pick IN ('home', 'away');
+ALTER TABLE predictions ADD COLUMN IF NOT EXISTS game_id INT REFERENCES games(id) ON DELETE CASCADE;
+ALTER TABLE predictions ADD COLUMN IF NOT EXISTS pick TEXT CHECK (pick IN ('home', 'away'));
 
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_predictions_user_id ON predictions(user_id); -- speeds up fetching all predictions made by a given user
