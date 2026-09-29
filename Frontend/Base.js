@@ -47,6 +47,7 @@ async function refresh() {
   $("postsHint").hidden = $("predHint").hidden = !!me;
   loadPosts();
   loadPredictions();
+  loadGames();
 }
 
 function setMode(m) {
@@ -208,12 +209,50 @@ async function loadPredictions() {
   }
 }
 
+// ------------ Games ----------------
+async function loadGames(params) {
+  const list = $("gamesList");
+  const select = $("predGame");
+  try {
+    const upcoming = await api("/api/games");
+    if (!upcoming.length) {
+      list.innerHTML = '<p class="hint">No upcoming games. Try syncing.</p>';
+      select.innerHTML = "";
+      return;
+    }
+    list.innerHTML = upcoming
+      .map(
+        (g) => `
+      <article class="card">
+        <div class="meta">${esc(g.sport)} · ${esc(g.status)}</div>
+        <h3>${esc(g.away_team)} @ ${esc(g.home_team)}</h3>
+        <div class="meta">${new Date(g.start_time).toLocaleString()}</div>
+      </article>
+      `
+      )
+      .join("");
+
+    select.innerHTML = upcoming
+      .map(
+        (
+          g
+        ) => `<option value="${g.id}">${esc(g.away_team)} @ ${esc(g.home_team)} - 
+      ${new Date(g.start_time).toLocaleString()}</option>
+      
+      `
+      )
+      .join("");
+  } catch (err) {
+    list.innerHTML = `<p class="error">Couldn't load games: ${esc(err.message)}</p>`;
+  }
+}
+
 $("predForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
     await api("/api/predictions", "POST", {
-      game: $("predGame").value,
-      prediction_text: $("predText").value,
+      game_id: Number($("predGame").value),
+      pick: document.querySelector('input[name="pick"]:checked')?.value,
       points: Number($("predPoints").value)
     });
     e.target.reset();
