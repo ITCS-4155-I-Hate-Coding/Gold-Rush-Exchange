@@ -8,11 +8,13 @@ import LoginBackend as auth
 import PostBackend as posts
 import CommentBackend as comments
 import PredictionBackend as preds
+import ProfileBackend as profile
+import os
 import GameBackend as games
 
 FRONTEND = Path(__file__).resolve().parent.parent / "Frontend"
 app = Flask(__name__, static_folder=str(FRONTEND), static_url_path="")
-app.secret_key = "change-this-to-a-long-random-string"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-only-change-me")
 
 
 def answer(ok, message):
@@ -122,6 +124,21 @@ def add_prediction():
     except (TypeError, ValueError):
         return jsonify(error="Points must be a number."), 400
     return answer(*preds.create_prediction(session["user_id"], d.get("game_id"), d.get("pick"), points))
+
+# ---------- Profiles ----------
+@app.get("/api/profile")
+def my_profile():
+    if "user_id" not in session:
+        return need_login()
+    data = profile.get_profile(session["user_id"])
+    return (jsonify(data), 200) if data else (jsonify(error="User not found."), 404)
+
+
+@app.get("/api/users/<username>/profile")
+def user_profile(username):
+    # public, like posts and predictions, so usernames can link to a profile
+    data = profile.get_profile_by_username(username)
+    return (jsonify(data), 200) if data else (jsonify(error="User not found."), 404)
 
 
 # ---------- Games ----------
