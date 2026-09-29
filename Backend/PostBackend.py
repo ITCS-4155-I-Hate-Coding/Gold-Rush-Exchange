@@ -17,22 +17,36 @@ def create_post(user_id, content):
     
 
 
-def like_post(post_id):
-    # result of liking post will update the database to show amount of likes
-    result = query(
-        "UPDATE posts SET likes = likes + 1 WHERE id = %s RETURNING id",
-        (post_id,),
+def like_post(user_id, post_id):
+    post = query("SELECT id FROM posts WHERE id = %s", (post_id,), fetchone=True)
+    if not post:
+        return False, "Post not found."
+
+    # if this user already liked the post, clicking again removes the like instead of stacking another
+    existing = query(
+        "SELECT 1 FROM post_likes WHERE user_id = %s AND post_id = %s",
+        (user_id, post_id),
         fetchone=True
     )
-    if not result:
-        return False, "Post not found."
+
+    if existing:
+        query("DELETE FROM post_likes WHERE user_id = %s AND post_id = %s", (user_id, post_id), fetch=False)
+        query("UPDATE posts SET likes = likes - 1 WHERE id = %s", (post_id,), fetch=False)
+        return True, "Post unliked"
+
+    query("INSERT INTO post_likes (user_id, post_id) VALUES (%s, %s)", (user_id, post_id), fetch=False)
+    query("UPDATE posts SET likes = likes + 1 WHERE id = %s", (post_id,), fetch=False)
     return True, "Post liked"
 
-def view_posts():
-    # using join to group together the post with the username
+def view_posts(user_id=None):
+    # using join to group together the post with the username, plus whether the current user has liked it
     return query(
-        "SELECT posts.id, posts.content, posts.likes, posts.created_at, users.username FROM posts" \
-        " JOIN users ON users.id = posts.user_id ORDER BY posts.created_at DESC"
+        """
+        SELECT posts.id, posts.content, posts.likes, posts.created_at, users.username,
+               EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = posts.id AND pl.user_id = %s) AS liked_by_me
+        FROM posts JOIN users ON users.id = posts.user_id ORDER BY posts.created_at DESC
+        """,
+        (user_id,)
     )
 
 # currently for testingr4

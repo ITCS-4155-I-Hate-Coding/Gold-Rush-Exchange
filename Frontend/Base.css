@@ -167,9 +167,21 @@ dialog h2 {
 }
 .like:hover { background: var(--gold-light); border-color: var(--gold); }
 .like:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.like.liked { background: var(--green); border-color: var(--green); color: #fff; }
+.like.liked:hover { background: var(--gold); border-color: var(--gold); }
 .post-text { white-space: pre-wrap; margin: .25rem 0 .6rem; }
 .pred-row { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
 .result { font-weight: 600; font-size: .85rem; padding: .1rem .6rem; border-radius: 999px; }
 .result.pending { background: var(--gold-light); color: #6f6238; }
 .result.correct { background: var(--green); color: #fff; }
 .result.incorrect { background: var(--error); color: #fff; }
+
+.like.liked {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+.like.liked:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+}

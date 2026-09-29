@@ -8,7 +8,11 @@ import LoginBackend as auth
 import PostBackend as posts
 import CommentBackend as comments
 import PredictionBackend as preds
+<<<<<<< HEAD
 import os
+=======
+import GameBackend as games
+>>>>>>> bfbfccef334ca138be5edc989589b60b03ca2218
 
 FRONTEND = Path(__file__).resolve().parent.parent / "Frontend"
 app = Flask(__name__, static_folder=str(FRONTEND), static_url_path="")
@@ -62,7 +66,7 @@ def me():
 # ---------- Posts ----------
 @app.get("/api/posts")
 def get_posts():
-    return jsonify(posts.view_posts())
+    return jsonify(posts.view_posts(session.get("user_id")))
 
 
 @app.post("/api/posts")
@@ -77,13 +81,13 @@ def add_post():
 def like_post(post_id):
     if "user_id" not in session:
         return need_login()
-    return answer(*posts.like_post(post_id))
+    return answer(*posts.like_post(session["user_id"], post_id))
 
 
 # ---------- Comments ----------
 @app.get("/api/posts/<int:post_id>/comments")
 def get_comments(post_id):
-    return jsonify(comments.view_comments(post_id))
+    return jsonify(comments.view_comments(post_id, session.get("user_id")))
 
 
 @app.post("/api/posts/<int:post_id>/comments")
@@ -98,7 +102,7 @@ def add_comment(post_id):
 def like_comment(comment_id):
     if "user_id" not in session:
         return need_login()
-    return answer(*comments.like_comment(comment_id))
+    return answer(*comments.like_comment(session["user_id"], comment_id))
 
 
 # ---------- Predictions ----------
@@ -120,11 +124,14 @@ def add_prediction():
     try:
         points = int(d.get("points"))
     except (TypeError, ValueError):
-        return answer(False, "Points wagered must be a number")
-    return answer(*preds.create_prediction(
-        session["user_id"], (d.get("game") or "").strip(), (d.get("prediction_text") or "").strip(), points
-    ))
+        return answer(*preds.create_prediction(
+            session["user_id"], (d.get("game_id"), d.get("pick"), points))
+    )
 
+# ---------- Games ----------
+@app.get("/api/games")
+def get_games():
+    return jsonify(games.view_upcoming_games(request.args.get("sport")))
 
 if __name__ == "__main__":
     app.run(debug=True)

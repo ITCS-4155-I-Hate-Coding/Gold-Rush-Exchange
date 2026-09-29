@@ -1,25 +1,34 @@
 const $ = (id) => document.getElementById(id);
-let me = null;            // { id, username, reputation } when logged in
-let mode = "login";       // or "register"
+let me = null; // { id, username, reputation } when logged in
+let mode = "login"; // or "register"
 
 async function api(path, method = "GET", body) {
   const res = await fetch(path, {
     method,
     headers: { "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? JSON.stringify(body) : undefined
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Something went wrong");
   return data;
 }
 
-const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const esc = (s) =>
+  String(s ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ]
+  );
 const when = (d) => (d ? new Date(d).toLocaleDateString() : "");
 
 // ---------- Tabs ----------
 document.querySelectorAll(".tab").forEach((btn) =>
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === btn));
+    document
+      .querySelectorAll(".tab")
+      .forEach((t) => t.classList.toggle("active", t === btn));
     $("posts").hidden = btn.dataset.tab !== "posts";
     $("predictions").hidden = btn.dataset.tab !== "predictions";
   })
@@ -60,7 +69,9 @@ $("authBtn").addEventListener("click", async () => {
     $("authDialog").showModal();
   }
 });
-$("authSwitch").addEventListener("click", () => setMode(mode === "login" ? "register" : "login"));
+$("authSwitch").addEventListener("click", () =>
+  setMode(mode === "login" ? "register" : "login")
+);
 
 $("authForm").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -68,7 +79,12 @@ $("authForm").addEventListener("submit", async (e) => {
   const email = $("email").value.trim();
   const password = $("password").value;
   try {
-    if (mode === "register") await api("/api/register", "POST", { username: $("username").value.trim(), email, password });
+    if (mode === "register")
+      await api("/api/register", "POST", {
+        username: $("username").value.trim(),
+        email,
+        password
+      });
     await api("/api/login", "POST", { email, password });
     $("authForm").reset();
     $("authDialog").close();
@@ -84,17 +100,23 @@ async function loadPosts() {
   const list = $("postList");
   try {
     const posts = await api("/api/posts");
-    if (!posts.length) return (list.innerHTML = '<p class="hint">No posts yet. Be the first to post.</p>');
-    list.innerHTML = posts.map((p) => `
+    if (!posts.length)
+      return (list.innerHTML =
+        '<p class="hint">No posts yet. Be the first to post.</p>');
+    list.innerHTML = posts
+      .map(
+        (p) => `
       <article class="card" data-post="${p.id}">
         <div class="meta">${esc(p.username)} · ${when(p.created_at)}</div>
         <p class="post-text">${esc(p.content)}</p>
-        <button class="like" data-like-post="${p.id}">Like · ${p.likes}</button>
+        <button class="like ${p.liked_by_me ? "liked" : ""}" data-like-post="${p.id}">${p.liked_by_me ? "Unlike" : "Like"} · ${p.likes}</button>
         <div class="comments">
           <div class="comment-list"></div>
           ${me ? `<form class="comment-form"><input placeholder="Add a comment" required><button class="btn">Comment</button></form>` : ""}
         </div>
-      </article>`).join("");
+      </article>`
+      )
+      .join("");
     posts.forEach((p) => loadComments(p.id));
   } catch (err) {
     list.innerHTML = `<p class="error">Couldn't load posts: ${esc(err.message)}</p>`;
@@ -105,11 +127,17 @@ async function loadComments(postId) {
   const box = document.querySelector(`[data-post="${postId}"] .comment-list`);
   try {
     const comments = await api(`/api/posts/${postId}/comments`);
-    box.innerHTML = comments.map((c) => `
+    box.innerHTML = comments
+      .map(
+        (c) => `
       <div class="comment"><b>${esc(c.username)}</b> ${esc(c.content)}
-        <button class="like" data-like-comment="${c.id}" data-post="${postId}">Like · ${c.likes}</button>
-      </div>`).join("");
-  } catch { box.innerHTML = ""; }
+        <button class="like ${c.liked_by_me ? "liked" : ""}" data-like-comment="${c.id}" data-post="${postId}">${c.liked_by_me ? "Unlike" : "Like"} · ${c.likes}</button>
+      </div>`
+      )
+      .join("");
+  } catch {
+    box.innerHTML = "";
+  }
 }
 
 $("postForm").addEventListener("submit", async (e) => {
@@ -118,7 +146,9 @@ $("postForm").addEventListener("submit", async (e) => {
     await api("/api/posts", "POST", { content: $("postBody").value });
     e.target.reset();
     loadPosts();
-  } catch (err) { alert(err.message); }
+  } catch (err) {
+    alert(err.message);
+  }
 });
 
 $("postList").addEventListener("submit", async (e) => {
@@ -126,10 +156,14 @@ $("postList").addEventListener("submit", async (e) => {
   const postId = e.target.closest("[data-post]").dataset.post;
   const input = e.target.querySelector("input");
   try {
-    await api(`/api/posts/${postId}/comments`, "POST", { content: input.value });
+    await api(`/api/posts/${postId}/comments`, "POST", {
+      content: input.value
+    });
     input.value = "";
     loadComments(postId);
-  } catch (err) { alert(err.message); }
+  } catch (err) {
+    alert(err.message);
+  }
 });
 
 $("postList").addEventListener("click", async (e) => {
@@ -143,7 +177,9 @@ $("postList").addEventListener("click", async (e) => {
       await api(`/api/comments/${btn.dataset.likeComment}/like`, "POST");
       loadComments(btn.dataset.post);
     }
-  } catch (err) { alert(err.message); }
+  } catch (err) {
+    alert(err.message);
+  }
 });
 
 // ---------- Predictions ----------
@@ -152,7 +188,9 @@ async function loadPredictions() {
   try {
     const preds = await api("/api/predictions");
     list.innerHTML = preds.length
-      ? preds.map((p) => `
+      ? preds
+          .map(
+            (p) => `
         <article class="card">
           <h3>${esc(p.game)}</h3>
           <div class="meta">${esc(p.username)} · ${when(p.created_at)}</div>
@@ -161,7 +199,9 @@ async function loadPredictions() {
             <span>${p.points} pts wagered</span>
             <span class="result ${esc(p.result)}">${esc(p.result)}</span>
           </div>
-        </article>`).join("")
+        </article>`
+          )
+          .join("")
       : '<p class="hint">No predictions yet.</p>';
   } catch (err) {
     list.innerHTML = `<p class="error">Couldn't load predictions: ${esc(err.message)}</p>`;
@@ -174,11 +214,13 @@ $("predForm").addEventListener("submit", async (e) => {
     await api("/api/predictions", "POST", {
       game: $("predGame").value,
       prediction_text: $("predText").value,
-      points: Number($("predPoints").value),
+      points: Number($("predPoints").value)
     });
     e.target.reset();
     loadPredictions();
-  } catch (err) { alert(err.message); }
+  } catch (err) {
+    alert(err.message);
+  }
 });
 
 refresh();
