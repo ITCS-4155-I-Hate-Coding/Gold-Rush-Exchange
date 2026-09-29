@@ -8,6 +8,7 @@ import LoginBackend as auth
 import PostBackend as posts
 import CommentBackend as comments
 import PredictionBackend as preds
+import ProfileBackend as profile
 
 FRONTEND = Path(__file__).resolve().parent.parent / "Frontend"
 app = Flask(__name__, static_folder=str(FRONTEND), static_url_path="")
@@ -123,6 +124,21 @@ def add_prediction():
     return answer(*preds.create_prediction(
         session["user_id"], (d.get("game") or "").strip(), (d.get("prediction_text") or "").strip(), points
     ))
+
+# ---------- Profiles ----------
+@app.get("/api/profile")
+def my_profile():
+    if "user_id" not in session:
+        return need_login()
+    data = profile.get_profile(session["user_id"])
+    return (jsonify(data), 200) if data else (jsonify(error="User not found."), 404)
+
+
+@app.get("/api/users/<username>/profile")
+def user_profile(username):
+    # public, like posts and predictions, so usernames can link to a profile
+    data = profile.get_profile_by_username(username)
+    return (jsonify(data), 200) if data else (jsonify(error="User not found."), 404)
 
 
 if __name__ == "__main__":
