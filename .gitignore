@@ -1,9 +1,9 @@
 # preventing git changes to be tracked in these files
 
 __pycache__/
-*.pyc
+# *.pyc
 # .venv/
 # venv/
 # .env
 .DS_Store
-Backend/app.py
+# Backend/app.py
