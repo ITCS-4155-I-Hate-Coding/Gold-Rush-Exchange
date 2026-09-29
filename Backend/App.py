@@ -8,6 +8,7 @@ import LoginBackend as auth
 import PostBackend as posts
 import CommentBackend as comments
 import PredictionBackend as preds
+import GameBackend as games
 
 FRONTEND = Path(__file__).resolve().parent.parent / "Frontend"
 app = Flask(__name__, static_folder=str(FRONTEND), static_url_path="")
@@ -119,11 +120,14 @@ def add_prediction():
     try:
         points = int(d.get("points"))
     except (TypeError, ValueError):
-        return answer(False, "Points wagered must be a number")
-    return answer(*preds.create_prediction(
-        session["user_id"], (d.get("game") or "").strip(), (d.get("prediction_text") or "").strip(), points
-    ))
+        return answer(*preds.create_prediction(
+            session["user_id"], (d.get("game_id"), d.get("pick"), points))
+    )
 
+# ---------- Games ----------
+@app.get("/api/games")
+def get_games():
+    return jsonify(games.view_upcoming_games(request.args.get("sport")))
 
 if __name__ == "__main__":
     app.run(debug=True)
