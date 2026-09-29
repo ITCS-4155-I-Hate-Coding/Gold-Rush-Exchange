@@ -8,11 +8,11 @@ import LoginBackend as auth
 import PostBackend as posts
 import CommentBackend as comments
 import PredictionBackend as preds
-<<<<<<< HEAD
+
 import os
-=======
+# =======
 import GameBackend as games
->>>>>>> bfbfccef334ca138be5edc989589b60b03ca2218
+# >>>>>>> bfbfccef334ca138be5edc989589b60b03ca2218
 
 FRONTEND = Path(__file__).resolve().parent.parent / "Frontend"
 app = Flask(__name__, static_folder=str(FRONTEND), static_url_path="")
