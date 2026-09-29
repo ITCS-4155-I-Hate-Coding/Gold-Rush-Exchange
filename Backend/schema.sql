@@ -66,8 +66,29 @@ CREATE TABLE IF NOT EXISTS comment_likes (
     PRIMARY KEY (user_id, comment_id)
 );
 
+
+-- Table to allow games to show in the future and update from ESPN
+CREATE TABLE IF NOT EXISTS games (
+    id SERIAL PRIMARY KEY, 
+    external_id TEXT NOT NULL UNIQUE, -- the ESPN event id
+    sport TEXT NOT NULL CHECK (sport IN ('football', 'basketball')),
+    home_team TEXT NOT NULL, 
+    away_team TEXT NOT NULL, 
+    start_time TIMESTAMPTZ NOT NULL,
+    status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'in_progress', 'final')),
+    home_score INT,
+    away_score INT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- table alterations for future additions to schema, app, and backend sections
+
+-- ALTER TABLE predictions ADD COLUMN IF NOT EXISTS game_id INT REFERENCES games(id) ON DELETE CASCADE;
+-- ALTER TABLE predictions ADD COLUMN IF NOT EXISTS pick TEXT CHECK (pick IN ('home', 'away');
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_predictions_user_id ON predictions(user_id); -- speeds up fetching all predictions made by a given user
 CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id); -- speeds up fetching all posts made by a given user
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id); -- speeds up loading all comments for a given post
 CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id); -- speeds up fetching all comments made by a given user
+CREATE INDEX IF NOT EXISTS idx_games_sport_start ON games(sport, start_time);
