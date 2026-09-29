@@ -120,14 +120,21 @@ def add_prediction():
     try:
         points = int(d.get("points"))
     except (TypeError, ValueError):
-        return answer(*preds.create_prediction(
-            session["user_id"], (d.get("game_id"), d.get("pick"), points))
-    )
+        return jsonify(error="Points must be a number."), 400
+    return answer(*preds.create_prediction(session["user_id"], d.get("game_id"), d.get("pick"), points))
+
 
 # ---------- Games ----------
 @app.get("/api/games")
 def get_games():
     return jsonify(games.view_upcoming_games(request.args.get("sport")))
+
+
+@app.post("/api/games/sync")
+def sync_games_route():
+    football = games.sync_games("football")
+    basketball = games.sync_games("basketball")
+    return jsonify(football_synced=football, basketball_synced=basketball)
 
 if __name__ == "__main__":
     app.run(debug=True)
