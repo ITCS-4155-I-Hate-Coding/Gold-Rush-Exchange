@@ -86,6 +86,12 @@ CREATE TABLE IF NOT EXISTS games (
 ALTER TABLE predictions ADD COLUMN IF NOT EXISTS game_id INT REFERENCES games(id) ON DELETE CASCADE;
 ALTER TABLE predictions ADD COLUMN IF NOT EXISTS pick TEXT CHECK (pick IN ('home', 'away'));
 
+-- rankings (AP Top 25, NULL = unranked) and conferences for filtering games
+ALTER TABLE games ADD COLUMN IF NOT EXISTS home_rank INT;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS away_rank INT;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS home_conference TEXT;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS away_conference TEXT;
+
 -- Indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_predictions_user_id ON predictions(user_id); -- speeds up fetching all predictions made by a given user
 CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id); -- speeds up fetching all posts made by a given user
