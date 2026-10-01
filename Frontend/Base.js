@@ -1,6 +1,9 @@
 const $ = (id) => document.getElementById(id);
 let me = null; // { id, username, reputation } when logged in
 let mode = "login"; // or "register"
+let allPreds = [];
+let predView = "mine";
+const myPicks = new Map(); // game_id is the team name the user picked
 
 async function api(path, method = "GET", body) {
   const res = await fetch(path, {
@@ -43,7 +46,7 @@ async function refresh() {
     $("userLabel").textContent = me.username;
     $("repBadge").textContent = `${me.reputation} rep`;
   }
-  $("postForm").hidden = $("predForm").hidden = !me;
+  $("postForm").hidden = !me;
   $("postsHint").hidden = $("predHint").hidden = !!me;
   loadPosts();
   loadPredictions();
@@ -184,81 +187,340 @@ $("postList").addEventListener("click", async (e) => {
 });
 
 // ---------- Predictions ----------
+
 async function loadPredictions() {
   const list = $("predList");
   try {
-    const preds = await api("/api/predictions");
-    list.innerHTML = preds.length
-      ? preds
-          .map(
-            (p) => `
-        <article class="card">
-          <h3>${esc(p.game)}</h3>
-          <div class="meta">${esc(p.username)} · ${when(p.created_at)}</div>
-          <div class="pred-row">
-            <span class="pick">${esc(p.prediction_text)}</span>
-            <span>${p.points} pts wagered</span>
-            <span class="result ${esc(p.result)}">${esc(p.result)}</span>
-          </div>
-        </article>`
-          )
-          .join("")
-      : '<p class="hint">No predictions yet.</p>';
+    allPreds = await api("/api/predictions");
+    myPicks.clear();
+    for (const p of allPreds)
+      if (me && p.user_id === me.id && p.game_id)
+        myPicks.set(p.game_id, p.prediction_text.replace(/ wins$/, ""));
+    renderPredictions();
+    renderGames(); // tiles show your picks
   } catch (err) {
     list.innerHTML = `<p class="error">Couldn't load predictions: ${esc(err.message)}</p>`;
   }
 }
 
-// ------------ Games ----------------
-async function loadGames(params) {
-  const list = $("gamesList");
-  const select = $("predGame");
-  try {
-    const upcoming = await api("/api/games");
-    if (!upcoming.length) {
-      list.innerHTML = '<p class="hint">No upcoming games. Try syncing.</p>';
-      select.innerHTML = "";
-      return;
-    }
-    list.innerHTML = upcoming
-      .map(
-        (g) => `
-      <article class="card">
-        <div class="meta">${esc(g.sport)} · ${esc(g.status)}</div>
-        <h3>${esc(g.away_team)} @ ${esc(g.home_team)}</h3>
-        <div class="meta">${new Date(g.start_time).toLocaleString()}</div>
-      </article>
-      `
-      )
-      .join("");
+function renderPredictions() {
+  const rows = allPreds.filter(
+    (p) => predView === "all" || (me && p.user_id === me.id)
+  );
+  $("predList").innerHTML = rows.length
+    ? rows
+        .map(
+          (p) =>
+            `
+    <article class="pcard ${esc(p.result)}">
+      <div>
+        <h4>${esc(p.game)}</h4>
+        <p class="meta">${predView === "all" ? esc(p.username) + " · " : ""}${when(p.created_at)}</p>
+      </div>
+      <div class="pred-row">
+        <span class="pick">${esc(p.prediction_text)}</span>
+        <span class="wager">${p.points} rep wagered${
+          p.result === "correct" ? ` · <b class="w">+${p.points}</b>`
+          : p.result === "incorrect" ? ` · <b class="l">−${p.points}</b>`
+          : ""}</span>
+        <span class="result ${esc(p.result)}">${esc(p.result)}</span>
+      </div>
+    </article>
+  `
+        )
+        .join("")
+    : `<p class="hint">${predView === "mine" ? "No predictions yet. Pick a game above." : "No predictions yet."}</p>`;
+}
 
-    select.innerHTML = upcoming
-      .map(
-        (
-          g
-        ) => `<option value="${g.id}">${esc(g.away_team)} @ ${esc(g.home_team)} - 
-      ${new Date(g.start_time).toLocaleString()}</option>
-      
-      `
-      )
-      .join("");
+$("predView").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-v]");
+  if (!b) return;
+  predView = b.dataset.v;
+  $("predView")
+    .querySelectorAll("button")
+    .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  renderPredictions();
+});
+
+// Dialog for predictions
+let predGame = null;
+let predPick = null;
+
+const fmtWhen = (t) => {
+  const d = new Date(t);
+  const day = d.toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric"
+  });
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return `${day} at ${time}`;
+};
+
+// => `${new Date(t).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} at
+// ${new Date(t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+
+function openPredict(g) {
+  if (!me) return $("authBtn").click(); // if logged out then open the login dialog instead
+  predGame = g;
+  predPick = null;
+  $("predMeta").textContent =
+    `${g.sport[0].toUpperCase() + g.sport.slice(1)} · ${fmtWhen(g.start_time)}`;
+  for (const side of ["away", "home"]) {
+    const b = document.querySelector(`.pick-btn[data-pick="${side}"]`);
+    b.innerHTML = `<small>${side}</small>${teamLabel(g[`${side}_team`], g[`${side}_rank`])}`;
+    b.setAttribute("aria-pressed", "false");
+  }
+  $("predBalance").textContent = `Balance: ${me.reputation} rep`;
+  $("predPoints").value = "";
+  $("predPoints").max = me.reputation;
+  $("predError").textContent = "";
+  updateOutcome();
+  $("predDialog").showModal();
+}
+
+function updateOutcome() {
+  const n = Number($("predPoints").value);
+  document.querySelectorAll("#predChips .chip").forEach((c) => {
+    const v = c.dataset.pts === "max" ? me.reputation : Number(c.dataset.pts);
+    c.setAttribute("aria-pressed", String(n > 0 && n === v));
+  });
+  $("predOutcome").innerHTML =
+    n > 0 ? `Win <b class="w">+${n}</b> · Lose <b class="l">-${n}</b> rep` : "";
+}
+
+function showSuccessMessage(msg) {
+  const t = $("successMessage");
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => (t.hidden = true), 3000);
+}
+
+$("gamesList").addEventListener("click", (e) => {
+  const b = e.target.closest(".predict");
+  if (b) openPredict(allGames.find((g) => g.id === Number(b.dataset.id)));
+});
+
+document.querySelectorAll(".pick-btn").forEach((b) =>
+  b.addEventListener("click", () => {
+    predPick = b.dataset.pick;
+    $("predError").textContent = "";
+    document
+      .querySelectorAll(".pick-btn")
+      .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  })
+);
+
+$("predChips").addEventListener("click", (e) => {
+  const c = e.target.closest(".chip");
+  if (!c) return;
+  $("predPoints").value =
+    c.dataset.pts === "max" ? me.reputation : c.dataset.pts;
+  $("predError").textContent = "";
+  updateOutcome();
+});
+
+$("predPoints").addEventListener("input", () => {
+  $("predError").textContent = "";
+  updateOutcome();
+});
+$("predCancel").addEventListener("click", () => $("predDialog").close());
+
+$("predForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const points = Number($("predPoints").value);
+  if (!predPick)
+    return void ($("predError").textContent = "Choose a team to win.");
+  if (!(points > 0))
+    return void ($("predError").textContent =
+      "Enter a wager of at least 1 rep.");
+  if (points > me.reputation)
+    return void ($("predError").textContent =
+      `You only have ${me.reputation} rep to wager.`);
+  $("predSubmit").disabled = true;
+  try {
+    await api("/api/predictions", "POST", {
+      game_id: predGame.id,
+      pick: predPick,
+      points
+    });
+    $("predDialog").close();
+    showSuccessMessage(
+      `Picked ${predGame[predPick + "_team"]} · ${points} rep`
+    );
+    await refresh(); // reloads balance, predictions list, and tile badges
+  } catch (err) {
+    $("predError").textContent = err.message;
+  } finally {
+    $("predSubmit").disabled = false;
+  }
+});
+
+// ------------ Games ----------------
+let allGames = [];
+const gameFilter = { view: "all", sport: "all", conf: "all" };
+const GAMES_PER_PAGE = 12;
+let gamesShown = GAMES_PER_PAGE;
+
+const isCharlotte = (g) => /charlotte/i.test(g.home_team + " " + g.away_team);
+const isTop25 = (g) => g.home_rank || g.away_rank;
+const teamLabel = (name, rank) =>
+  (rank ? `<b class="rank">#${rank}</b> ` : "") + esc(name);
+
+async function loadGames() {
+  const list = $("gamesList");
+  try {
+    allGames = await api("/api/games");
+    renderGames();
   } catch (err) {
     list.innerHTML = `<p class="error">Couldn't load games: ${esc(err.message)}</p>`;
   }
 }
 
-$("predForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  try {
-    await api("/api/predictions", "POST", {
-      game_id: Number($("predGame").value),
-      pick: document.querySelector('input[name="pick"]:checked')?.value,
-      points: Number($("predPoints").value)
+function renderGames() {
+  const list = $("gamesList");
+  if (!allGames.length) {
+    $("gameFilters").innerHTML = "";
+    $("gamesMore").hidden = true;
+    list.innerHTML = '<p class="hint">No upcoming games. Try syncing.</p>';
+    return;
+  }
+
+  const confs = [
+    ...new Set(
+      allGames
+        .flatMap((g) => [g.home_conference, g.away_conference])
+        .filter(Boolean)
+    )
+  ].sort();
+  const chip = (group, value, label, count) =>
+    `<button type="button" class="chip" aria-pressed="${gameFilter[group] === value}" data-group="${group}" data-value="${value}">${label}<small>${count}</small></button>`;
+  $("gameFilters").innerHTML =
+    chip("view", "all", "All", allGames.length) +
+    chip(
+      "view",
+      "charlotte",
+      "Charlotte",
+      allGames.filter(isCharlotte).length
+    ) +
+    chip("view", "top25", "Top 25", allGames.filter(isTop25).length) +
+    `<span class="chip-gap"></span>` +
+    chip("sport", "all", "All sports", allGames.length) +
+    chip(
+      "sport",
+      "football",
+      "Football",
+      allGames.filter((g) => g.sport === "football").length
+    ) +
+    chip(
+      "sport",
+      "basketball",
+      "Basketball",
+      allGames.filter((g) => g.sport === "basketball").length
+    ) +
+    `<select id="confFilter" aria-label="Filter by conference">
+       <option value="all">All conferences</option>
+       ${confs.map((c) => `<option value="${esc(c)}" ${gameFilter.conf === c ? "selected" : ""}>${esc(c)}</option>`).join("")}
+     </select>`;
+
+  const shown = allGames.filter(
+    (g) =>
+      (gameFilter.view === "all" ||
+        (gameFilter.view === "charlotte" ? isCharlotte(g) : isTop25(g))) &&
+      (gameFilter.sport === "all" || g.sport === gameFilter.sport) &&
+      (gameFilter.conf === "all" ||
+        g.home_conference === gameFilter.conf ||
+        g.away_conference === gameFilter.conf)
+  );
+  if (!shown.length) {
+    $("gamesMore").hidden = true;
+    list.innerHTML = '<p class="hint">No games match these filters.</p>';
+    return;
+  }
+
+  const visible = shown.slice(0, gamesShown);
+  const days = new Map();
+  for (const g of visible) {
+    const day = new Date(g.start_time).toLocaleDateString([], {
+      weekday: "short",
+      month: "short",
+      day: "numeric"
     });
-    e.target.reset();
-    loadPredictions();
+    if (!days.has(day)) days.set(day, []);
+    days.get(day).push(g);
+  }
+  list.innerHTML = [...days]
+    .map(
+      ([day, games]) => `
+    <section class="day">
+      <h3 class="day-h">${esc(day)}<span>${games.length} game${games.length > 1 ? "s" : ""}</span></h3>
+      <div class="game-grid">
+        ${games
+          .map(
+            (g) => `
+        <article class="tile">
+          <div class="tile-top"><span class="sport ${esc(g.sport)}">${esc(g.sport)}</span><span>${esc(g.status)}</span></div>
+          <div class="teams">
+            <div><i>AWAY</i><span>${teamLabel(g.away_team, g.away_rank)}</span></div>
+            <div><i>HOME</i><span>${teamLabel(g.home_team, g.home_rank)}</span></div>
+          </div>
+          <div class="tile-foot">
+            <span class="time">${new Date(g.start_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+            ${
+              myPicks.has(g.id)
+                ? `<span class="picked">Your pick: ${esc(myPicks.get(g.id))}</span>`
+                : `<button type="button" class="predict" data-id="${g.id}">Predict</button>`
+            }
+            
+          </div>
+        </article>`
+          )
+          .join("")}
+      </div>
+    </section>`
+    )
+    .join("");
+
+  const left = shown.length - visible.length;
+  $("gamesMore").hidden = left <= 0;
+  $("gamesMore").textContent =
+    `Show ${Math.min(left, GAMES_PER_PAGE)} more (${left} left)`;
+}
+
+$("gameFilters").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-group]");
+  if (!b) return;
+  gameFilter[b.dataset.group] = b.dataset.value;
+  gamesShown = GAMES_PER_PAGE;
+  renderGames();
+});
+$("gameFilters").addEventListener("change", (e) => {
+  if (e.target.id !== "confFilter") return;
+  gameFilter.conf = e.target.value;
+  gamesShown = GAMES_PER_PAGE;
+  renderGames();
+});
+$("gamesMore").addEventListener("click", () => {
+  gamesShown += GAMES_PER_PAGE;
+  renderGames();
+});
+// for the sync games button
+$("syncGamesBtn").addEventListener("click", async () => {
+  const btn = $("syncGamesBtn");
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Syncing...";
+  try {
+    const result = await api("/api/games/sync", "POST");
+    await refresh(); // refresh games, predictions, and posts; pulls from api again
+    btn.textContent = `Synced (${result.predictions_settled} settled)`;
   } catch (err) {
-    alert(err.message);
+    alert(`Couldn't sync games: ${err.message}`);
+    btn.textContent = originalText;
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => (btn.textContent = originalText), 2500);
   }
 });
 
