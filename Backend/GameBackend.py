@@ -65,7 +65,7 @@ def fetch_espn_games(sport, days_ahead=7):
                     "away_conference": CONFERENCES.get(str(away["team"].get("conferenceId"))),
                 })
             except (KeyError, IndexError, StopIteration):
-                continue # skip malformed/incomplete events instead of aborting the whole sync
+                continue # skip malformed or incomplete events instead of aborting the whole sync
 
     return games
 
