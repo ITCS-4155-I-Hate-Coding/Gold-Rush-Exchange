@@ -274,6 +274,7 @@ The project uses several technologies to build the application.
 ### Database
 
 - **PostgreSQL** – Stores users login, predictions, posts, and comments
+- **Neon** - shared database online for free
 <!-- Stores users, predictions, posts, comments, games, and other application data. -->
 
 ### Development Tools
