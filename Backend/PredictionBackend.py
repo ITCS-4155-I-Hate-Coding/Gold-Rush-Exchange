@@ -22,7 +22,7 @@ def create_prediction(user_id, game_id, pick, points):
     # No result column value is given (it will be pending at first)
     query(
         "INSERT INTO predictions (user_id, game, prediction_text, points, game_id, pick) VALUES (%s, %s, %s, %s, %s, %s)",
-        (user_id, display_game, f"{display_pick} wins", game_id, pick, points),
+        (user_id, display_game, f"{display_pick} wins", points, game_id, pick),
         fetch=False,
     )
     return True, "Prediction created successfully."
