@@ -43,38 +43,49 @@
       </section>
 
       <section id="predictions" class="panel" hidden>
-        <div class="row" style="align-items: center; justify-content: space-between">
+        <div
+          class="row"
+          style="align-items: center; justify-content: space-between"
+        >
           <h2>Upcoming Games</h2>
           <button type="button" id="syncGamesBtn" class="btn btn-outline">
             Sync games
           </button>
         </div>
+        <div
+          id="gameFilters"
+          class="filters"
+          role="group"
+          aria-label="Filter games"
+        ></div>
         <div id="gamesList"></div>
+        <button
+          type="button"
+          id="gamesMore"
+          class="btn btn-outline more"
+          hidden
+        ></button>
 
-        <form id="predForm" class="card" hidden>
-          <select id="predGame" required></select>
-          <div class="row pick-row">
-            <label
-              ><input type="radio" name="pick" value="away" required />
-              <span id="awayLabel">Away</span></label
-            >
-            <label
-              ><input type="radio" name="pick" value="home" />
-              <span id="homeLabel">Home</span></label
-            >
+        <div
+          class="row"
+          style="align-items: center; justify-content: space-between"
+        >
+          <h2>Predictions</h2>
+          <div
+            class="seg"
+            id="predView"
+            role="group"
+            aria-label="Show predictions"
+          >
+            <button type="button" data-v="mine" aria-pressed="true">
+              My Picks
+            </button>
+            <button type="button" data-v="all" aria-pressed="false">
+              Community
+            </button>
           </div>
-          <input
-            id="predPoints"
-            type="number"
-            min="1"
-            placeholder="Reputation points to wager"
-            required
-          />
-          <button class="btn">Submit prediction</button>
+        </div>
 
-          <!-- <input id="predGame" placeholder="Game or event (e.g. 49ers vs. Tulane)" required>
-        <input id="predText" placeholder="Your prediction (e.g. 49ers win)" required> -->
-        </form>
         <p class="hint" id="predHint">Log in to make a prediction.</p>
         <div id="predList"></div>
       </section>
@@ -115,6 +126,50 @@
         </div>
       </form>
     </dialog>
+
+    <dialog id="predDialog" aria-labelledby="predTitle">
+      <form id="predForm" method="dialog" novalidate>
+        <h3 id="predTitle">Make your pick</h3>
+        <p class="meta" id="predMeta"></p>
+        <div class="pick-grid" role="group" aria-label="Your pick">
+          <button
+            type="button"
+            class="pick-btn"
+            data-pick="away"
+            aria-pressed="false"
+          ></button>
+          <button
+            type="button"
+            class="pick-btn"
+            data-pick="home"
+            aria-pressed="false"
+          ></button>
+        </div>
+        <label for="predPoints">Wager <span id="predBalance"></span></label>
+        <div class="chips" id="predChips">
+          <button type="button" class="chip" data-pts="10">10</button>
+          <button type="button" class="chip" data-pts="25">25</button>
+          <button type="button" class="chip" data-pts="50">50</button>
+          <button type="button" class="chip" data-pts="max">Max</button>
+        </div>
+        <input
+          id="predPoints"
+          type="number"
+          min="1"
+          inputmode="numeric"
+          placeholder="Reputation points"
+        />
+        <p class="outcome" id="predOutcome" aria-live="polite"></p>
+        <p class="error" id="predError" role="alert"></p>
+        <div class="row">
+          <button class="btn" id="predSubmit">Submit prediction</button>
+          <button class="btn btn-link" type="button" id="predCancel">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <div id="successMessage" role="status" hidden></div>
 
     <script src="Base.js"></script>
   </body>
