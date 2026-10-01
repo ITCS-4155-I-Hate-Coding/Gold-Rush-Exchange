@@ -151,7 +151,8 @@ def get_games():
 def sync_games_route():
     football = games.sync_games("football")
     basketball = games.sync_games("basketball")
-    return jsonify(football_synced=football, basketball_synced=basketball)
+    settled = preds.auto_settle_finished_games()
+    return jsonify(football_synced = football, basketball_synced = basketball, predictions_settled = settled,)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
