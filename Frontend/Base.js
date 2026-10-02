@@ -25,17 +25,31 @@ const esc = (s) =>
       ]
   );
 const when = (d) => (d ? new Date(d).toLocaleDateString() : "");
+const userLink = (u) =>
+  `<button type="button" class="user-link" data-user="${esc(u)}">${esc(u)}</button>`;
 
 // ---------- Tabs ----------
+const TABS = ["posts", "predictions", "profile"];
+
+function showTab(name) {
+  document
+    .querySelectorAll(".tab")
+    .forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
+  TABS.forEach((t) => ($(t).hidden = t !== name));
+}
+
 document.querySelectorAll(".tab").forEach((btn) =>
   btn.addEventListener("click", () => {
-    document
-      .querySelectorAll(".tab")
-      .forEach((t) => t.classList.toggle("active", t === btn));
-    $("posts").hidden = btn.dataset.tab !== "posts";
-    $("predictions").hidden = btn.dataset.tab !== "predictions";
+    if (btn.dataset.tab === "profile") return openProfile(); // your own profile
+    showTab(btn.dataset.tab);
   })
 );
+
+// any username (on a post, comment or prediction) opens that user's profile
+document.addEventListener("click", (e) => {
+  const link = e.target.closest(".user-link");
+  if (link) openProfile(link.dataset.user);
+});
 
 // ---------- Auth ----------
 async function refresh() {
@@ -46,7 +60,9 @@ async function refresh() {
     $("userLabel").textContent = me.username;
     $("repBadge").textContent = `${me.reputation} rep`;
   }
-  $("postForm").hidden = !me;
+  $("profileTab").hidden = !me;
+  if (!me && !$("profile").hidden) showTab("posts"); // logged out while on Profile
+  $("postForm").hidden = $("predForm").hidden = !me;
   $("postsHint").hidden = $("predHint").hidden = !!me;
   loadPosts();
   loadPredictions();
@@ -111,7 +127,7 @@ async function loadPosts() {
       .map(
         (p) => `
       <article class="card" data-post="${p.id}">
-        <div class="meta">${esc(p.username)} · ${when(p.created_at)}</div>
+        <div class="meta">${userLink(p.username)} · ${when(p.created_at)}</div>
         <p class="post-text">${esc(p.content)}</p>
         <button class="like ${p.liked_by_me ? "liked" : ""}" data-like-post="${p.id}">${p.liked_by_me ? "Unlike" : "Like"} · ${p.likes}</button>
         <div class="comments">
@@ -134,7 +150,7 @@ async function loadComments(postId) {
     box.innerHTML = comments
       .map(
         (c) => `
-      <div class="comment"><b>${esc(c.username)}</b> ${esc(c.content)}
+      <div class="comment">${userLink(c.username)}${esc(c.content)}
         <button class="like ${c.liked_by_me ? "liked" : ""}" data-like-comment="${c.id}" data-post="${postId}">${c.liked_by_me ? "Unlike" : "Like"} · ${c.likes}</button>
       </div>`
       )
@@ -215,7 +231,7 @@ function renderPredictions() {
     <article class="pcard ${esc(p.result)}">
       <div>
         <h4>${esc(p.game)}</h4>
-        <p class="meta">${predView === "all" ? esc(p.username) + " · " : ""}${when(p.created_at)}</p>
+        <p class="meta">${predView === "all" ? userLink(p.username) + " · " : ""}${when(p.created_at)}</p>
       </div>
       <div class="pred-row">
         <span class="pick">${esc(p.prediction_text)}</span>
@@ -523,5 +539,75 @@ $("syncGamesBtn").addEventListener("click", async () => {
     setTimeout(() => (btn.textContent = originalText), 2500);
   }
 });
+
+// ---------- Profile ----------
+function openProfile(username) {
+  showTab("profile");
+  loadProfile(username);
+}
+
+async function loadProfile(username) {
+  const box = $("profileBody");
+  box.innerHTML = '<p class="hint">Loading profile…</p>';
+  try {
+    const path = username
+      ? `/api/users/${encodeURIComponent(username)}/profile`
+      : "/api/profile";
+    box.innerHTML = renderProfile(await api(path));
+  } catch (err) {
+    box.innerHTML = `<p class="error">Couldn't load profile: ${esc(err.message)}</p>`;
+  }
+}
+
+function renderProfile(p) {
+  const s = p.predictions;
+  const accuracy = s.accuracy === null ? "—" : `${Math.round(s.accuracy)}%`;
+  const accuracyNote = s.settled
+    ? `${s.correct} of ${s.settled} settled correct`
+    : "No settled predictions yet";
+  const stat = (num, label, note = "") => `
+      <div class="stat">
+        <div class="stat-num">${esc(num)}</div>
+        <div class="stat-label">${esc(label)}</div>
+        ${note ? `<div class="stat-note">${esc(note)}</div>` : ""}
+      </div>`;
+
+  const activity = p.recent_activity.length
+    ? p.recent_activity.map(renderActivity).join("")
+    : '<p class="hint">No activity yet.</p>';
+
+  return `
+    <article class="card profile-head">
+      <h2>${esc(p.username)}</h2>
+      <div class="meta">Member since ${when(p.member_since)}</div>
+    </article>
+    <div class="stats">
+      ${stat(p.reputation, "Reputation")}
+      ${stat(accuracy, "Prediction accuracy", accuracyNote)}
+      ${stat(`${s.correct}–${s.incorrect}`, "Record (W–L)", `${s.pending} pending · ${s.total} total`)}
+      ${stat(`+${s.rep_gained}`, "Rep won", `−${s.rep_lost} lost on incorrect picks`)}
+    </div>
+    <h3 class="section-title">Recent activity</h3>
+    <div class="activity">${activity}</div>`;
+}
+
+function renderActivity(a) {
+  const label = { post: "Post", comment: "Comment", prediction: "Prediction" }[a.type];
+  const body =
+    a.type === "prediction"
+      ? `<strong>${esc(a.title)}</strong>
+         <div class="pred-row">
+           <span class="pick">${esc(a.body)}</span>
+           <span>${a.points} pts wagered</span>
+           <span class="result ${esc(a.result)}">${esc(a.result)}</span>
+         </div>`
+      : `<p class="post-text">${esc(a.body)}</p>`;
+  return `
+    <div class="activity-item">
+      <div class="meta"><span class="kind kind-${esc(a.type)}">${label}</span> ${when(a.created_at)}</div>
+      ${body}
+    </div>`;
+}
+
 
 refresh();
