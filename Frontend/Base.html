@@ -18,6 +18,7 @@
         <nav class="tabs">
           <button class="tab active" data-tab="posts">Posts</button>
           <button class="tab" data-tab="predictions">Predictions</button>
+          <button class="tab" data-tab="profile" id="profileTab" hidden>Profile</button>
         </nav>
         <div class="auth">
           <span id="userLabel" hidden></span>
@@ -88,6 +89,10 @@
 
         <p class="hint" id="predHint">Log in to make a prediction.</p>
         <div id="predList"></div>
+      </section>
+
+      <section id="profile" class="panel" hidden>   <!-- ADD these 3 lines -->
+      <div id="profileBody"></div>
       </section>
     </main>
 
