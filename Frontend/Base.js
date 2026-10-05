@@ -65,6 +65,10 @@ async function refresh() {
   if (!me && !$("profile").hidden) showTab("posts"); // logged out while on Profile
     $("followingTab").hidden = !me;
   if (!me && !$("following").hidden) showTab("posts"); // logged out while on Following
+    if (!me) {
+    $("userSearch").value = "";
+    $("searchResults").innerHTML = "";
+  }
   $("postForm").hidden = $("predForm").hidden = !me;
   $("postsHint").hidden = $("predHint").hidden = !!me;
   loadPosts();
@@ -685,12 +689,51 @@ document.addEventListener("click", async (e) => {
       `/api/users/${encodeURIComponent(name)}/follow`,
       btn.dataset.following === "1" ? "DELETE" : "POST"
     );
-    if (btn.dataset.where === "list") loadFollowing();
-    else loadProfile(name);
+    if (btn.dataset.where === "list" || btn.dataset.where === "search") {
+      loadFollowing(); // the list and feed change
+      runSearch(); // search results show the new Follow/Unfollow state
+    } else loadProfile(name);
   } catch (err) {
     alert(err.message);
     btn.disabled = false;
   }
+});
+
+// ---------- Search users ----------
+let searchTimer;
+
+async function runSearch() {
+  const q = $("userSearch").value.trim();
+  const box = $("searchResults");
+  if (!q) return (box.innerHTML = "");
+  try {
+    const users = await api(`/api/users/search?q=${encodeURIComponent(q)}`);
+    if (q !== $("userSearch").value.trim()) return; // a newer search is already running
+    box.innerHTML = users.length
+      ? users
+          .map(
+            (u) => `
+      <div class="follow-row">
+        <div>
+          ${userLink(u.username)}
+          <span class="meta">${u.reputation} rep</span>
+        </div>
+        <button type="button" class="btn ${u.is_following ? "btn-outline" : ""}"
+          data-follow="${esc(u.username)}" data-following="${u.is_following ? 1 : 0}" data-where="search">
+          ${u.is_following ? "Unfollow" : "Follow"}</button>
+      </div>`
+          )
+          .join("")
+      : `<p class="hint">No users match "${esc(q)}".</p>`;
+  } catch (err) {
+    box.innerHTML = `<p class="error">Search failed: ${esc(err.message)}</p>`;
+  }
+}
+
+// wait for a short pause in typing before searching
+$("userSearch").addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(runSearch, 300);
 });
 
 refresh();

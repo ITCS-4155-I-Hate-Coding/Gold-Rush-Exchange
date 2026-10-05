@@ -63,9 +63,35 @@ def get_following_feed(user_id, limit=FEED_LIMIT):
             FROM predictions pr
             JOIN users u ON u.id = pr.user_id
             WHERE pr.user_id IN (SELECT followed_id FROM follows WHERE follower_id = %s)
-        ) AS feed
+                ) AS feed
         ORDER BY created_at DESC
         LIMIT %s
         """,
         (user_id, user_id, limit),
+    )
+
+    
+
+def search_users(user_id, text, limit=10):
+    text = (text or "").strip()
+    if not text:
+        return []
+
+    # escape LIKE wildcards so typing % or _ searches for those characters literally
+    safe = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+    # usernames that contain the text (not you), names that START with it first,
+    # plus whether you already follow each one
+    return query(
+        """
+        SELECT u.username, u.reputation,
+               EXISTS(SELECT 1 FROM follows f
+                      WHERE f.follower_id = %s AND f.followed_id = u.id) AS is_following
+        FROM users u
+        WHERE u.id <> %s AND u.username ILIKE %s
+        ORDER BY (u.username ILIKE %s) DESC, u.username
+        LIMIT %s
+        """,
+        (user_id, user_id, "%" + safe + "%", safe + "%", limit),
+        
     )

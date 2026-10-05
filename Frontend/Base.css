@@ -767,3 +767,9 @@ dialog h2 {
   margin-bottom: .5rem;
 }
 .follow-row .meta { display: inline; margin: 0 0 0 .5rem; }
+
+/* User search (Following tab) */
+#userSearch { margin-bottom: 0; }
+#searchResults { margin-top: .6rem; }
+#searchResults:empty { margin-top: 0; }
+#searchResults .follow-row:last-child { margin-bottom: 0; }

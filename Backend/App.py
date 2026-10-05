@@ -156,6 +156,13 @@ def unfollow_route(username):
     return answer(*follow.unfollow_user(session["user_id"], username))
 
 
+@app.get("/api/users/search")
+def search_users_route():
+    if "user_id" not in session:
+        return need_login()
+    return jsonify(follow.search_users(session["user_id"], request.args.get("q")))
+
+
 @app.get("/api/following")
 def following_list():
     if "user_id" not in session:
