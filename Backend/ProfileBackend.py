@@ -4,7 +4,7 @@ from db import query
 RECENT_LIMIT = 20
 
 
-def get_profile(user_id, recent_limit=RECENT_LIMIT):
+def get_profile(user_id, recent_limit=RECENT_LIMIT, viewer_id=None):
     # only pull public-safe columns (never email or password_hash)
     user = query(
         "SELECT id, username, reputation, created_at FROM users WHERE id = %s",
@@ -28,6 +28,18 @@ def get_profile(user_id, recent_limit=RECENT_LIMIT):
         WHERE user_id = %s
         """,
         (user_id,),
+        fetchone=True,
+    )
+    
+    # follower counts, and whether the person looking at this profile already follows them
+    follow = query(
+        """
+        SELECT
+            (SELECT COUNT(*) FROM follows WHERE followed_id = %s) AS followers,
+            (SELECT COUNT(*) FROM follows WHERE follower_id = %s) AS following,
+            EXISTS(SELECT 1 FROM follows WHERE follower_id = %s AND followed_id = %s) AS is_following
+        """,
+        (user_id, user_id, viewer_id, user_id),
         fetchone=True,
     )
 
@@ -60,6 +72,10 @@ def get_profile(user_id, recent_limit=RECENT_LIMIT):
         "username": user["username"],
         "reputation": user["reputation"],
         "member_since": user["created_at"],
+        "followers": follow["followers"],
+        "following": follow["following"],
+        "is_following": follow["is_following"],
+        "is_me": viewer_id == user["id"],
         "predictions": {
             "total": stats["total"],
             "correct": stats["correct"],
@@ -74,6 +90,6 @@ def get_profile(user_id, recent_limit=RECENT_LIMIT):
     }
 
 
-def get_profile_by_username(username):
+def get_profile_by_username(username, viewer_id=None):
     user = query("SELECT id FROM users WHERE username = %s", (username,), fetchone=True)
-    return get_profile(user["id"]) if user else None
+    return get_profile(user["id"], viewer_id=viewer_id) if user else None

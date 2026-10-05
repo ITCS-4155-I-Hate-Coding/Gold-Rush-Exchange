@@ -98,3 +98,14 @@ CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id); -- speeds up fet
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id); -- speeds up loading all comments for a given post
 CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id); -- speeds up fetching all comments made by a given user
 CREATE INDEX IF NOT EXISTS idx_games_sport_start ON games(sport, start_time);
+
+
+-- Follows (who follows who; a user can't follow themselves or follow the same person twice)
+CREATE TABLE IF NOT EXISTS follows (
+    follower_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    followed_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (follower_id, followed_id),
+    CHECK (follower_id <> followed_id)
+);
+CREATE INDEX IF NOT EXISTS idx_follows_followed_id ON follows(followed_id);

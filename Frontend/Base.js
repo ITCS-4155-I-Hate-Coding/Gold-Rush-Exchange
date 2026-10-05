@@ -29,7 +29,7 @@ const userLink = (u) =>
   `<button type="button" class="user-link" data-user="${esc(u)}">${esc(u)}</button>`;
 
 // ---------- Tabs ----------
-const TABS = ["posts", "predictions", "profile"];
+const TABS = ["posts", "predictions", "following", "profile"];
 
 function showTab(name) {
   document
@@ -41,6 +41,7 @@ function showTab(name) {
 document.querySelectorAll(".tab").forEach((btn) =>
   btn.addEventListener("click", () => {
     if (btn.dataset.tab === "profile") return openProfile(); // your own profile
+    if (btn.dataset.tab === "following") return openFollowing();
     showTab(btn.dataset.tab);
   })
 );
@@ -62,6 +63,8 @@ async function refresh() {
   }
   $("profileTab").hidden = !me;
   if (!me && !$("profile").hidden) showTab("posts"); // logged out while on Profile
+    $("followingTab").hidden = !me;
+  if (!me && !$("following").hidden) showTab("posts"); // logged out while on Following
   $("postForm").hidden = $("predForm").hidden = !me;
   $("postsHint").hidden = $("predHint").hidden = !!me;
   loadPosts();
@@ -575,11 +578,22 @@ function renderProfile(p) {
   const activity = p.recent_activity.length
     ? p.recent_activity.map(renderActivity).join("")
     : '<p class="hint">No activity yet.</p>';
+  
+  const followBtn =
+    me && !p.is_me
+      ? `<button type="button" class="btn ${p.is_following ? "btn-outline" : ""}"
+           data-follow="${esc(p.username)}" data-following="${p.is_following ? 1 : 0}">
+           ${p.is_following ? "Unfollow" : "Follow"}</button>`
+      : "";
+  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
   return `
     <article class="card profile-head">
-      <h2>${esc(p.username)}</h2>
-      <div class="meta">Member since ${when(p.member_since)}</div>
+      <div>
+        <h2>${esc(p.username)}</h2>
+        <div class="meta">Member since ${when(p.member_since)} · ${plural(p.followers, "follower")} · ${p.following} following</div>
+      </div>
+      ${followBtn}
     </article>
     <div class="stats">
       ${stat(p.reputation, "Reputation")}
@@ -604,10 +618,79 @@ function renderActivity(a) {
       : `<p class="post-text">${esc(a.body)}</p>`;
   return `
     <div class="activity-item">
-      <div class="meta"><span class="kind kind-${esc(a.type)}">${label}</span> ${when(a.created_at)}</div>
+            <div class="meta"><span class="kind kind-${esc(a.type)}">${label}</span> ${a.username ? userLink(a.username) + " · " : ""}${when(a.created_at)}</div>
       ${body}
     </div>`;
 }
 
+// ---------- Following ----------
+function openFollowing() {
+  showTab("following");
+  loadFollowing();
+}
+
+async function loadFollowing() {
+  const box = $("followingBody");
+  box.innerHTML = '<p class="hint">Loading…</p>';
+  try {
+    const [people, feed] = await Promise.all([
+      api("/api/following"),
+      api("/api/following/feed")
+    ]);
+    box.innerHTML = renderFollowing(people, feed);
+  } catch (err) {
+    box.innerHTML = `<p class="error">Couldn't load following: ${esc(err.message)}</p>`;
+  }
+}
+
+function renderFollowing(people, feed) {
+  if (!people.length)
+    return `
+      <h3 class="section-title">Following (0)</h3>
+      <p class="hint">You're not following anyone yet. Click a username on a post or prediction to open their profile and follow them.</p>`;
+
+  const rows = people
+    .map(
+      (u) => `
+      <div class="follow-row">
+        <div>
+          ${userLink(u.username)}
+          <span class="meta">${u.reputation} rep · following since ${when(u.followed_at)}</span>
+        </div>
+        <button type="button" class="btn btn-outline"
+          data-follow="${esc(u.username)}" data-following="1" data-where="list">Unfollow</button>
+      </div>`
+    )
+    .join("");
+
+  const activity = feed.length
+    ? feed.map(renderActivity).join("")
+    : '<p class="hint">No posts or predictions from the people you follow yet.</p>';
+
+  return `
+    <h3 class="section-title">Following (${people.length})</h3>
+    <div class="follow-list">${rows}</div>
+    <h3 class="section-title">Their activity</h3>
+    <div class="activity">${activity}</div>`;
+}
+
+// Follow / Unfollow buttons (on a profile and in the Following list)
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-follow]");
+  if (!btn) return;
+  const name = btn.dataset.follow;
+  btn.disabled = true;
+  try {
+    await api(
+      `/api/users/${encodeURIComponent(name)}/follow`,
+      btn.dataset.following === "1" ? "DELETE" : "POST"
+    );
+    if (btn.dataset.where === "list") loadFollowing();
+    else loadProfile(name);
+  } catch (err) {
+    alert(err.message);
+    btn.disabled = false;
+  }
+});
 
 refresh();

@@ -1,5 +1,5 @@
 # Put this in your Backend folder next to LoginBackend.py, PostBackend.py, etc.
-# Run:  pip install flask   then   python app.py   and open http://localhost:5001
+# Run:  pip install flask   then   python app.py   and open http://localhost:5000
 from pathlib import Path
 from flask import Flask, jsonify, request, session, send_from_directory
 
@@ -9,6 +9,7 @@ import PostBackend as posts
 import CommentBackend as comments
 import PredictionBackend as preds
 import ProfileBackend as profile
+import FollowBackend as follow
 import os
 import GameBackend as games
 
@@ -130,16 +131,43 @@ def add_prediction():
 def my_profile():
     if "user_id" not in session:
         return need_login()
-    data = profile.get_profile(session["user_id"])
+    data = profile.get_profile(session["user_id"], viewer_id=session["user_id"])
     return (jsonify(data), 200) if data else (jsonify(error="User not found."), 404)
 
 
 @app.get("/api/users/<username>/profile")
 def user_profile(username):
     # public, like posts and predictions, so usernames can link to a profile
-    data = profile.get_profile_by_username(username)
+    data = profile.get_profile_by_username(username, viewer_id=session.get("user_id"))
     return (jsonify(data), 200) if data else (jsonify(error="User not found."), 404)
 
+# ---------- Following ----------
+@app.post("/api/users/<username>/follow")
+def follow_route(username):
+    if "user_id" not in session:
+        return need_login()
+    return answer(*follow.follow_user(session["user_id"], username))
+
+
+@app.delete("/api/users/<username>/follow")
+def unfollow_route(username):
+    if "user_id" not in session:
+        return need_login()
+    return answer(*follow.unfollow_user(session["user_id"], username))
+
+
+@app.get("/api/following")
+def following_list():
+    if "user_id" not in session:
+        return need_login()
+    return jsonify(follow.get_following(session["user_id"]))
+
+
+@app.get("/api/following/feed")
+def following_feed():
+    if "user_id" not in session:
+        return need_login()
+    return jsonify(follow.get_following_feed(session["user_id"]))
 
 # ---------- Games ----------
 @app.get("/api/games")
@@ -153,6 +181,7 @@ def sync_games_route():
     basketball = games.sync_games("basketball")
     settled = preds.auto_settle_finished_games()
     return jsonify(football_synced = football, basketball_synced = basketball, predictions_settled = settled,)
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)

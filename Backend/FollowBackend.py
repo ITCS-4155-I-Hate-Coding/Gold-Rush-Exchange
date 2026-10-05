@@ -1,0 +1,71 @@
+from db import query
+
+# how many items to show in the "people you follow" activity feed
+FEED_LIMIT = 50
+
+
+def follow_user(follower_id, username):
+    target = query("SELECT id FROM users WHERE username = %s", (username,), fetchone=True)
+    if not target:
+        return False, "User not found."
+    if target["id"] == follower_id:
+        return False, "You can't follow yourself."
+
+    # ON CONFLICT DO NOTHING means following someone twice is harmless
+    query(
+        "INSERT INTO follows (follower_id, followed_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+        (follower_id, target["id"]),
+        fetch=False,
+    )
+    return True, f"You are now following {username}."
+
+
+def unfollow_user(follower_id, username):
+    target = query("SELECT id FROM users WHERE username = %s", (username,), fetchone=True)
+    if not target:
+        return False, "User not found."
+
+    query(
+        "DELETE FROM follows WHERE follower_id = %s AND followed_id = %s",
+        (follower_id, target["id"]),
+        fetch=False,
+    )
+    return True, f"You unfollowed {username}."
+
+
+def get_following(user_id):
+    # everyone this user follows, most recently followed first
+    return query(
+        """
+        SELECT users.username, users.reputation, follows.created_at AS followed_at
+        FROM follows
+        JOIN users ON users.id = follows.followed_id
+        WHERE follows.follower_id = %s
+        ORDER BY follows.created_at DESC
+        """,
+        (user_id,),
+    )
+
+
+def get_following_feed(user_id, limit=FEED_LIMIT):
+    # posts and predictions from the people this user follows, newest first
+    return query(
+        """
+        SELECT type, username, title, body, result, points, created_at FROM (
+            SELECT 'post' AS type, u.username, NULL::text AS title, p.content AS body,
+                   NULL::text AS result, NULL::int AS points, p.created_at
+            FROM posts p
+            JOIN users u ON u.id = p.user_id
+            WHERE p.user_id IN (SELECT followed_id FROM follows WHERE follower_id = %s)
+            UNION ALL
+            SELECT 'prediction', u.username, pr.game, pr.prediction_text,
+                   pr.result, pr.points, pr.created_at
+            FROM predictions pr
+            JOIN users u ON u.id = pr.user_id
+            WHERE pr.user_id IN (SELECT followed_id FROM follows WHERE follower_id = %s)
+        ) AS feed
+        ORDER BY created_at DESC
+        LIMIT %s
+        """,
+        (user_id, user_id, limit),
+    )

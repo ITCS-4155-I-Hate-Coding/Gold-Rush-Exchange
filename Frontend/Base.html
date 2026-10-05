@@ -18,6 +18,7 @@
         <nav class="tabs">
           <button class="tab active" data-tab="posts">Posts</button>
           <button class="tab" data-tab="predictions">Predictions</button>
+          <button class="tab" data-tab="following" id="followingTab" hidden>Following</button>
           <button class="tab" data-tab="profile" id="profileTab" hidden>Profile</button>
         </nav>
         <div class="auth">
@@ -91,8 +92,12 @@
         <div id="predList"></div>
       </section>
 
-      <section id="profile" class="panel" hidden>   <!-- ADD these 3 lines -->
-      <div id="profileBody"></div>
+      <section id="following" class="panel" hidden>
+        <div id="followingBody"></div>
+      </section>
+
+      <section id="profile" class="panel" hidden>
+        <div id="profileBody"></div>
       </section>
     </main>
 

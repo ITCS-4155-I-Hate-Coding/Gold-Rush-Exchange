@@ -745,3 +745,25 @@ dialog h2 {
 .wager { font-size: .9rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .wager .w { color: var(--green); }
 .wager .l { color: var(--error); }
+
+/* Following */
+.profile-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.follow-list { margin-bottom: 1.5rem; }
+.follow-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: #fff;
+  border: 1px solid #dfddd3;
+  border-radius: 4px;
+  padding: .6rem 1rem;
+  margin-bottom: .5rem;
+}
+.follow-row .meta { display: inline; margin: 0 0 0 .5rem; }
