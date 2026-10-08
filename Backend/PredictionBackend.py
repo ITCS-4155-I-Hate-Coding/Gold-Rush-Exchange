@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 from db import query
@@ -12,12 +13,37 @@ def create_prediction(user_id, game_id, pick, points):
     if points is None or points <= 0:
         return False, "Points wagered must be more than 0"
 
-    game = query("SELECT home_team, away_team FROM games WHERE id = %s", (game_id,), fetchone=True)
+    
+    game = query("SELECT home_team, away_team, status, start_time FROM games WHERE id = %s", (game_id,), fetchone=True)
     if not game:
         return False, "That game does not exist"
 
+    if game["status"] != "scheduled" or game["start_time"] <= datetime.now(timezone.utc): # error here
+        return False, "Predictions are closed for this game."
+
     display_game = f"{game['away_team']} @ {game['home_team']}"
     display_pick = game["home_team"] if pick == "home" else game["away_team"]
+
+    # holding the wager points until the game is settled; no need to deduct them from the users reputation yet
+    held = query("UPDATE users SET reputation = reputation - %s WHERE id = %s AND reputation >= %s RETURNING reputation", 
+                 (points, user_id, points),
+                 fetchone=True)
+    if not held:
+        return False, "You do not have enough reputation points to make that prediction."
+
+    # no result column value is given (it will be pending at first)
+    try:
+        query("INSERT INTO predictions (user_id, game, prediction_text, points, game_id, pick) VALUES (%s, %s, %s, %s, %s, %s )",
+            (user_id, display_game, f"{display_pick} wins", points, game_id, pick),
+            fetch=False,)
+    except Exception:
+        # if the insert fails, refund the points to the user
+        query("UPDATE users SET reputation = reputation + %s WHERE id = %s", 
+              (points, user_id),
+              fetch=False,)
+        raise
+    return True, "Prediction created successfully."
+
 
     # No result column value is given (it will be pending at first)
     query(
@@ -40,9 +66,15 @@ def auto_settle_finished_games():
             continue # not guessing on ties
         actual_winner = "home" if p["home_score"] > p["away_score"] else "away"
         result = "correct" if p["pick"] == actual_winner else "incorrect"
-        change = p["points"] if result == "correct" else -p["points"]
-        query("UPDATE predictions SET result = %s WHERE id = %s", (result, p["id"]), fetch=False)
-        query("UPDATE users SET reputation = reputation + %s WHERE id = %s", (change, p["user_id"]), fetch=False)
+
+        payout = p["points"] * 2 if result == "correct" else 0 # double the payout since it is being held already and then on loss give 0 becuase the amount you would lose is already being held aswell
+        query("UPDATE predictions SET result = %s, payout = %s WHERE id = %s", 
+              (result, p["id"]), # leave payout for now may need to fix later
+              fetch=False,)
+        if payout:
+            query("UPDATE users SET reputation = reputation + %s WHERE id = %s",
+                  (payout, p["user_id"]),
+                  fetch=False,)
         settled += 1
     return settled
 
@@ -79,24 +111,29 @@ def settle_prediction(prediction_id, actual_outcome):
     is_correct = prediction["prediction_text"].strip().lower() == actual_outcome.strip().lower()
     result = "correct" if is_correct else "incorrect"
 
-    # for correct guess; gain wagered points and for a wrong guess you lose them
-    reputation_change = prediction["points"] if is_correct else -prediction["points"]
+    # the wager was already deducted when placed: a correct guess gets it back plus winnings, a wrong guess gets nothing
+    reputation_change = prediction["points"] * 2 if is_correct else 0
 
-    # updating the db to lock in the predictions result and another to change the users reputation
+    # updating the db to lock in the predictions result and another to pay out winners
     query(
         "UPDATE predictions SET result = %s WHERE id = %s",
         (result, prediction_id),
         fetch=False
     )
-    query(
-        "UPDATE users SET reputation = reputation + %s WHERE id = %s",
-        (reputation_change, prediction["user_id"]),
-        fetch=False
-    )
+    if reputation_change:
+        query(
+            "UPDATE users SET reputation = reputation + %s WHERE id = %s",
+            (reputation_change, prediction["user_id"]),
+            fetch=False
+        )
+
+    # net change compared to before the wager was placed
+    net = prediction["points"] if is_correct else -prediction["points"]
+
 
     # confirmation message
-    sign = "+" if reputation_change >= 0 else ""
-    return True, f"Prediction marked as {result} ({sign}{reputation_change} reputation)."
+    sign = "+" if net >= 0 else ""
+    return True, f"Prediction marked as {result} ({sign}{net} reputation)."
 
 
 if __name__ == "__main__":
