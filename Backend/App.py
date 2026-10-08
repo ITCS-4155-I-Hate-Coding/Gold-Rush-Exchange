@@ -17,12 +17,7 @@ import GameBackend as games
 # It powers the "Global" view on the Leaderboard tab.
 # No login required -- the global leaderboard is public, like the posts feed.
 
-@app.get("/api/leaderboard")
-def get_leaderboard():
-    rows = query(
-        "SELECT username, reputation FROM users ORDER BY reputation DESC LIMIT 100"
-    )
-    return jsonify(rows)
+
 
 FRONTEND = Path(__file__).resolve().parent.parent / "Frontend"
 app = Flask(__name__, static_folder=str(FRONTEND), static_url_path="")
@@ -199,6 +194,14 @@ def sync_games_route():
     basketball = games.sync_games("basketball")
     settled = preds.auto_settle_finished_games()
     return jsonify(football_synced = football, basketball_synced = basketball, predictions_settled = settled,)
+
+# ---------- Leaderboard ----------
+@app.get("/api/leaderboard")
+def get_leaderboard():
+    rows = query(
+        "SELECT username, reputation FROM users ORDER BY reputation DESC LIMIT 100"
+    )
+    return jsonify(rows)
 
 
 if __name__ == "__main__":
