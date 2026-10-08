@@ -63,9 +63,9 @@ async function refresh() {
   }
   $("profileTab").hidden = !me;
   if (!me && !$("profile").hidden) showTab("posts"); // logged out while on Profile
-    $("followingTab").hidden = !me;
+  $("followingTab").hidden = !me;
   if (!me && !$("following").hidden) showTab("posts"); // logged out while on Following
-    if (!me) {
+  if (!me) {
     $("userSearch").value = "";
     $("searchResults").innerHTML = "";
   }
@@ -157,7 +157,7 @@ async function loadComments(postId) {
     box.innerHTML = comments
       .map(
         (c) => `
-      <div class="comment">${userLink(c.username)}${esc(c.content)}
+      <div class="comment">${userLink(c.username)} ${esc(c.content)}
         <button class="like ${c.liked_by_me ? "liked" : ""}" data-like-comment="${c.id}" data-post="${postId}">${c.liked_by_me ? "Unlike" : "Like"} · ${c.likes}</button>
       </div>`
       )
@@ -243,9 +243,12 @@ function renderPredictions() {
       <div class="pred-row">
         <span class="pick">${esc(p.prediction_text)}</span>
         <span class="wager">${p.points} rep wagered${
-          p.result === "correct" ? ` · <b class="w">+${p.points}</b>`
-          : p.result === "incorrect" ? ` · <b class="l">−${p.points}</b>`
-          : ""}</span>
+          p.result === "correct"
+            ? ` · <b class="w">+${p.points}</b>`
+            : p.result === "incorrect"
+              ? ` · <b class="l">−${p.points}</b>`
+              : ""
+        }</span>
         <span class="result ${esc(p.result)}">${esc(p.result)}</span>
       </div>
     </article>
@@ -582,7 +585,7 @@ function renderProfile(p) {
   const activity = p.recent_activity.length
     ? p.recent_activity.map(renderActivity).join("")
     : '<p class="hint">No activity yet.</p>';
-  
+
   const followBtn =
     me && !p.is_me
       ? `<button type="button" class="btn ${p.is_following ? "btn-outline" : ""}"
@@ -610,7 +613,9 @@ function renderProfile(p) {
 }
 
 function renderActivity(a) {
-  const label = { post: "Post", comment: "Comment", prediction: "Prediction" }[a.type];
+  const label = { post: "Post", comment: "Comment", prediction: "Prediction" }[
+    a.type
+  ];
   const body =
     a.type === "prediction"
       ? `<strong>${esc(a.title)}</strong>
