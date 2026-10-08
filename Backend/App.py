@@ -13,6 +13,17 @@ import FollowBackend as follow
 import os
 import GameBackend as games
 
+# Add this route to your app.py (anywhere near the other @app.get routes).
+# It powers the "Global" view on the Leaderboard tab.
+# No login required -- the global leaderboard is public, like the posts feed.
+
+@app.get("/api/leaderboard")
+def get_leaderboard():
+    rows = query(
+        "SELECT username, reputation FROM users ORDER BY reputation DESC LIMIT 100"
+    )
+    return jsonify(rows)
+
 FRONTEND = Path(__file__).resolve().parent.parent / "Frontend"
 app = Flask(__name__, static_folder=str(FRONTEND), static_url_path="")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-only-change-me")

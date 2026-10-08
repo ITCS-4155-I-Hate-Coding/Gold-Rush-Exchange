@@ -9,6 +9,8 @@ let allPosts = [];
 let postView = "global"; // or "following"
 let followingSet = new Set(); // usernames the current user follows
 
+let lbView = "global"; // or "following"
+
 async function api(path, method = "GET", body) {
   const res = await fetch(path, {
     method,
@@ -34,7 +36,7 @@ const userLink = (u) =>
 const initial = (u) => esc((u || "?").trim().charAt(0).toUpperCase() || "?");
 
 // ---------- Tabs ----------
-const TABS = ["posts", "predictions", "following", "profile"];
+const TABS = ["posts", "predictions", "leaderboard", "following", "profile"];
 
 function showTab(name) {
   document
@@ -47,6 +49,7 @@ document.querySelectorAll(".tab").forEach((btn) =>
   btn.addEventListener("click", () => {
     if (btn.dataset.tab === "profile") return openProfile(); // your own profile
     if (btn.dataset.tab === "following") return openFollowing();
+    if (btn.dataset.tab === "leaderboard") return openLeaderboard();
     showTab(btn.dataset.tab);
   })
 );
@@ -85,6 +88,16 @@ async function refresh() {
       .querySelectorAll("button")
       .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === "global")));
   }
+
+  // Leaderboard's Following view only makes sense when logged in
+  $("lbView").hidden = !me;
+  if (!me) {
+    lbView = "global";
+    $("lbView")
+      .querySelectorAll("button")
+      .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === "global")));
+  }
+  if (!$("leaderboard").hidden) loadLeaderboard();
 
   loadPosts();
   loadPredictions();
@@ -754,6 +767,64 @@ document.addEventListener("click", async (e) => {
     btn.disabled = false;
   }
 });
+
+// ---------- Leaderboard ----------
+function openLeaderboard() {
+  showTab("leaderboard");
+  $("lbView").hidden = !me;
+  loadLeaderboard();
+}
+
+$("lbView").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-v]");
+  if (!b || !me) return;
+  lbView = b.dataset.v;
+  $("lbView")
+    .querySelectorAll("button")
+    .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  loadLeaderboard();
+});
+
+async function loadLeaderboard() {
+  const list = $("lbList");
+  list.innerHTML = '<p class="hint">Loading…</p>';
+  try {
+    let rows;
+    if (lbView === "following" && me) {
+      const following = await api("/api/following");
+      rows = following.map((u) => ({ username: u.username, reputation: u.reputation }));
+      rows.push({ username: me.username, reputation: me.reputation });
+    } else {
+      rows = await api("/api/leaderboard");
+    }
+    rows.sort((a, b) => b.reputation - a.reputation);
+    renderLeaderboard(rows);
+  } catch (err) {
+    list.innerHTML = `<p class="error">Couldn't load leaderboard: ${esc(err.message)}</p>`;
+  }
+}
+
+function renderLeaderboard(rows) {
+  const list = $("lbList");
+  if (!rows.length) {
+    list.innerHTML =
+      lbView === "following"
+        ? '<p class="hint">Follow people to compare reputation here.</p>'
+        : '<p class="hint">No ranked users yet.</p>';
+    return;
+  }
+  list.innerHTML = rows
+    .map(
+      (u, i) => `
+    <div class="lb-row ${me && u.username === me.username ? "lb-me" : ""}">
+      <span class="lb-rank">${i + 1}</span>
+      <span class="avatar" aria-hidden="true">${initial(u.username)}</span>
+      ${userLink(u.username)}
+      <span class="badge">${u.reputation} rep</span>
+    </div>`
+    )
+    .join("");
+}
 
 // ---------- Search users ----------
 let searchTimer;

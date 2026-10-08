@@ -18,6 +18,7 @@
         <nav class="tabs">
           <button class="tab active" data-tab="posts">Posts</button>
           <button class="tab" data-tab="predictions">Predictions</button>
+          <button class="tab" data-tab="leaderboard">Leaderboard</button>
           <button class="tab" data-tab="following" id="followingTab" hidden>Following</button>
           <button class="tab" data-tab="profile" id="profileTab" hidden>Profile</button>
         </nav>
@@ -97,6 +98,17 @@
 
         <p class="hint" id="predHint">Log in to make a prediction.</p>
         <div id="predList"></div>
+      </section>
+
+      <section id="leaderboard" class="panel" hidden>
+        <div class="posts-head">
+          <h2>Leaderboard</h2>
+          <div class="seg" id="lbView" role="group" aria-label="Show leaderboard" hidden>
+            <button type="button" data-v="global" aria-pressed="true">Global</button>
+            <button type="button" data-v="following" aria-pressed="false">Following</button>
+          </div>
+        </div>
+        <div id="lbList"></div>
       </section>
 
       <section id="following" class="panel" hidden>
