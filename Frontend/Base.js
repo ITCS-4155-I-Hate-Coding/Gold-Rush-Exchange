@@ -5,6 +5,10 @@ let allPreds = [];
 let predView = "mine";
 const myPicks = new Map(); // game_id is the team name the user picked
 
+let allPosts = [];
+let postView = "global"; // or "following"
+let followingSet = new Set(); // usernames the current user follows
+
 async function api(path, method = "GET", body) {
   const res = await fetch(path, {
     method,
@@ -27,6 +31,7 @@ const esc = (s) =>
 const when = (d) => (d ? new Date(d).toLocaleDateString() : "");
 const userLink = (u) =>
   `<button type="button" class="user-link" data-user="${esc(u)}">${esc(u)}</button>`;
+const initial = (u) => esc((u || "?").trim().charAt(0).toUpperCase() || "?");
 
 // ---------- Tabs ----------
 const TABS = ["posts", "predictions", "following", "profile"];
@@ -71,6 +76,16 @@ async function refresh() {
   }
   $("postForm").hidden = $("predForm").hidden = !me;
   $("postsHint").hidden = $("predHint").hidden = !!me;
+
+  // Global/Following toggle only makes sense when logged in
+  $("postView").hidden = !me;
+  if (!me) {
+    postView = "global";
+    $("postView")
+      .querySelectorAll("button")
+      .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === "global")));
+  }
+
   loadPosts();
   loadPredictions();
   loadGames();
@@ -123,35 +138,73 @@ $("authForm").addEventListener("submit", async (e) => {
 });
 
 // ---------- Posts + comments ----------
+
+// Global / Following toggle
+$("postView").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-v]");
+  if (!b || !me) return;
+  postView = b.dataset.v;
+  $("postView")
+    .querySelectorAll("button")
+    .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  renderPosts();
+});
+
 async function loadPosts() {
   const list = $("postList");
   try {
-    const posts = await api("/api/posts");
-    if (!posts.length)
-      return (list.innerHTML =
-        '<p class="hint">No posts yet. Be the first to post.</p>');
-    list.innerHTML = posts
-      .map(
-        (p) => `
-      <article class="card" data-post="${p.id}">
-        <div class="meta">${userLink(p.username)} · ${when(p.created_at)}</div>
-        <p class="post-text">${esc(p.content)}</p>
-        <button class="like ${p.liked_by_me ? "liked" : ""}" data-like-post="${p.id}">${p.liked_by_me ? "Unlike" : "Like"} · ${p.likes}</button>
-        <div class="comments">
-          <div class="comment-list"></div>
-          ${me ? `<form class="comment-form"><input placeholder="Add a comment" required><button class="btn">Comment</button></form>` : ""}
-        </div>
-      </article>`
-      )
-      .join("");
-    posts.forEach((p) => loadComments(p.id));
+    const [posts, followList] = await Promise.all([
+      api("/api/posts"),
+      me ? api("/api/following").catch(() => []) : Promise.resolve([])
+    ]);
+    allPosts = posts;
+    followingSet = new Set(followList.map((u) => u.username));
+    renderPosts();
   } catch (err) {
     list.innerHTML = `<p class="error">Couldn't load posts: ${esc(err.message)}</p>`;
   }
 }
 
+function renderPosts() {
+  const list = $("postList");
+  const rows =
+    postView === "following" && me
+      ? allPosts.filter((p) => followingSet.has(p.username))
+      : allPosts;
+
+  if (!rows.length) {
+    list.innerHTML =
+      postView === "following"
+        ? '<p class="hint">No posts yet from people you follow. Find people to follow on the Following tab.</p>'
+        : '<p class="hint">No posts yet. Be the first to post.</p>';
+    return;
+  }
+
+  list.innerHTML = rows
+    .map(
+      (p) => `
+      <article class="card post-card" data-post="${p.id}">
+        <div class="post-head">
+          <span class="avatar" aria-hidden="true">${initial(p.username)}</span>
+          <div class="meta">${userLink(p.username)} · ${when(p.created_at)}</div>
+        </div>
+        <p class="post-text">${esc(p.content)}</p>
+        <div class="post-foot">
+          <button class="like ${p.liked_by_me ? "liked" : ""}" data-like-post="${p.id}">${p.liked_by_me ? "Unlike" : "Like"} · ${p.likes}</button>
+        </div>
+        <div class="comments">
+          <div class="comment-list"></div>
+          ${me ? `<form class="comment-form"><input placeholder="Add a comment" required><button class="btn">Comment</button></form>` : ""}
+        </div>
+      </article>`
+    )
+    .join("");
+  rows.forEach((p) => loadComments(p.id));
+}
+
 async function loadComments(postId) {
   const box = document.querySelector(`[data-post="${postId}"] .comment-list`);
+  if (!box) return;
   try {
     const comments = await api(`/api/posts/${postId}/comments`);
     box.innerHTML = comments
@@ -282,9 +335,6 @@ const fmtWhen = (t) => {
   const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   return `${day} at ${time}`;
 };
-
-// => `${new Date(t).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} at
-// ${new Date(t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
 
 function openPredict(g) {
   if (!me) return $("authBtn").click(); // if logged out then open the login dialog instead
@@ -698,6 +748,7 @@ document.addEventListener("click", async (e) => {
       loadFollowing(); // the list and feed change
       runSearch(); // search results show the new Follow/Unfollow state
     } else loadProfile(name);
+    if (postView === "following") loadPosts(); // keep the Posts filter in sync too
   } catch (err) {
     alert(err.message);
     btn.disabled = false;

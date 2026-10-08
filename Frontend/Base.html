@@ -31,6 +31,13 @@
 
     <main>
       <section id="posts" class="panel">
+        <div class="posts-head">
+          <h2>Posts</h2>
+          <div class="seg" id="postView" role="group" aria-label="Show posts" hidden>
+            <button type="button" data-v="global" aria-pressed="true">Global</button>
+            <button type="button" data-v="following" aria-pressed="false">Following</button>
+          </div>
+        </div>
         <form id="postForm" class="card" hidden>
           <textarea
             id="postBody"

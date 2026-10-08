@@ -91,6 +91,7 @@ h2 {
   font-size: 1.5rem;
   color: var(--ink);
   letter-spacing: .01em;
+  margin: 0;
 }
 
 /* Cards */
@@ -248,10 +249,7 @@ dialog h2 {
 .user-link:hover { text-decoration: underline; color: var(--gold); }
 .user-link:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
-.profile-head h2 {
-  margin: 0;
-  font-size: 2rem;
-}
+.profile-head h2 { margin: 0; font-size: 2rem; }
 .profile-head .meta { margin: 0; }
 
 .stats {
@@ -469,7 +467,7 @@ dialog h2 {
 .outcome .l { color: var(--loss); font-weight: 700; }
 #predError { min-height: 1.4em; margin: 0 0 .5rem; font-size: .9rem; }
 
-/* Prediction list */
+/* Seg toggle (used by Posts and Predictions) */
 .seg {
   display: inline-flex;
   border: 1px solid var(--line);
@@ -564,3 +562,55 @@ dialog h2 {
 #searchResults { margin-top: .6rem; }
 #searchResults:empty { margin-top: 0; }
 #searchResults .follow-row:last-child { margin-bottom: 0; }
+
+/* ---------- Posts page polish ---------- */
+.posts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+#postForm {
+  border-left-color: var(--gold);
+}
+#postForm textarea {
+  margin-bottom: .75rem;
+}
+.post-card {
+  transition: border-color .15s ease;
+}
+.post-card:hover {
+  border-color: var(--line-soft);
+}
+.post-head {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-bottom: .15rem;
+}
+.avatar {
+  flex: none;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #06140f;
+  background: linear-gradient(135deg, var(--gold-soft), var(--gold));
+}
+.post-head .meta { margin: 0; }
+.post-card .post-text {
+  margin: .2rem 0 .8rem;
+  font-size: 1rem;
+}
+.post-foot {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
