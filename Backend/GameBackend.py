@@ -35,10 +35,11 @@ def _rank(competitor):
     r = competitor.get("curatedRank", {}).get("current")
     return r if isinstance(r, int) and 1 <= r <= 25 else None
 
-def fetch_espn_games(sport, days_ahead=7):
+def fetch_espn_games(sport, days_ahead=7, days_behind=7):
     games = []
     today = datetime.now(timezone.utc).date()
-    for offset in range(days_ahead):
+    # a negative days_behind will fetch recent games to get their final scores and settle predictions
+    for offset in range(-days_behind,days_ahead):
         params = {"dates": (today + timedelta(days=offset)).strftime("%Y%m%d")}
         if sport == "football":
             params["groups"] = FBS_GROUP # inserting the group id for NCAA football; not necessary for basketball
@@ -107,15 +108,15 @@ def fetch_espn_games(sport, days_ahead=7):
 
 #         ) for g in games]
 
-def sync_games(sport, days_ahead=7):
-    games = fetch_espn_games(sport, days_ahead)
+def sync_games(sport, days_ahead=7, days_behind=7):
+    games = fetch_espn_games(sport, days_ahead, days_behind)
     for g in games:
         query(
             "INSERT INTO games (external_id, sport, home_team, away_team, start_time, status, home_score, away_score," \
             " home_rank, away_rank, home_conference, away_conference)" \
             " VALUES (%(external_id)s, %(sport)s, %(home_team)s, %(away_team)s, %(start_time)s, %(status)s, %(home_score)s, %(away_score)s," \
             " %(home_rank)s, %(away_rank)s, %(home_conference)s, %(away_conference)s)" \
-            " ON CONFLICT (external_id) DO UPDATE SET status = EXCLUDED.status, home_score = EXCLUDED.home_score, away_score = EXCLUDED.away_score," \
+            " ON CONFLICT (external_id) DO UPDATE SET status = EXCLUDED.status, start_time = EXCLUDED.start_time, home_score = EXCLUDED.home_score, away_score = EXCLUDED.away_score," \
             " home_rank = EXCLUDED.home_rank, away_rank = EXCLUDED.away_rank," \
             " home_conference = EXCLUDED.home_conference, away_conference = EXCLUDED.away_conference",
             g, fetch=False
@@ -124,9 +125,10 @@ def sync_games(sport, days_ahead=7):
 
 
 def view_upcoming_games(sport=None):
+    # only games that havent started yet; older games stay in the table for history
     if sport:
-        return query("SELECT * FROM games WHERE sport = %s AND status != 'final' ORDER BY start_time ASC", (sport,))
-    return query("SELECT * FROM games WHERE status != 'final' ORDER BY start_time ASC")
+        return query("SELECT * FROM games WHERE sport = %s AND status = 'scheduled' AND start_time > NOW() ORDER BY start_time ASC", (sport,))
+    return query("SELECT * FROM games WHERE status = 'scheduled' AND start_time > NOW() ORDER BY start_time ASC")
 
 
 if __name__ == "__main__":
