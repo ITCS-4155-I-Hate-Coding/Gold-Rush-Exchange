@@ -10,6 +10,7 @@ import CommentBackend as comments
 import PredictionBackend as preds
 import ProfileBackend as profile
 import FollowBackend as follow
+import CompareBackend as compare
 import os
 import GameBackend as games
 
@@ -194,6 +195,15 @@ def sync_games_route():
     basketball = games.sync_games("basketball")
     settled = preds.auto_settle_finished_games()
     return jsonify(football_synced = football, basketball_synced = basketball, predictions_settled = settled,)
+
+# ---------- Compare ----------
+@app.get("/api/compare")
+def compare_route():
+    if "user_id" not in session:
+        return need_login()
+    names = request.args.get("users", "").split(",")
+    data, error = compare.get_comparison(session["user_id"], names)
+    return (jsonify(error=error), 400) if error else jsonify(data)
 
 # ---------- Leaderboard ----------
 @app.get("/api/leaderboard")

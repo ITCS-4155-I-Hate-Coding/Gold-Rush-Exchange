@@ -644,3 +644,64 @@ dialog h2 {
 .lb-row:nth-child(3) .lb-rank { color: #b98b3e; }
 .lb-row .user-link { flex: 1; }
 .lb-row .badge { margin-left: auto; flex: none; }
+
+/* Compare */
+.pick-list { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .7rem; }
+.pick-list:empty { display: none; }
+.pick {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .3rem .95rem .3rem .3rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  font: 600 .95rem "Source Sans 3", sans-serif;
+  cursor: pointer;
+}
+.pick .avatar { width: 1.9rem; height: 1.9rem; font-size: .95rem; opacity: .65; }
+.pick:hover { border-color: var(--gold); }
+.pick[aria-pressed="true"] { background: var(--green-deep); border-color: var(--green); color: var(--win); }
+.pick[aria-pressed="true"] .avatar { opacity: 1; box-shadow: 0 0 0 2px var(--green); }
+.pick[aria-pressed="true"]::after { content: "\2713"; margin-left: .1rem; }
+.pick:disabled { opacity: .4; cursor: not-allowed; }
+.pick:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.cmp-wrap {
+  overflow-x: auto;
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-card);
+}
+.cmp { width: 100%; min-width: 440px; border-collapse: collapse; }
+.cmp th, .cmp td {
+  padding: .75rem 1rem;
+  text-align: left;
+  vertical-align: middle;
+  border: 1px solid var(--line-soft);
+}
+.cmp tr > :first-child { border-left: 0; }
+.cmp tr > :last-child { border-right: 0; }
+.cmp thead tr > * { border-top: 0; }
+.cmp tbody tr:last-child > * { border-bottom: 0; }
+.cmp thead th { background: var(--bg-raised); color: var(--ink); }
+.cmp .cmp-corner { color: var(--muted); font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.cmp tbody th { background: var(--bg-raised); color: var(--muted); font-weight: 600; white-space: nowrap; }
+.cmp-user { display: flex; align-items: center; gap: .6rem; font-weight: 700; }
+.cmp .me-col { background: rgba(21, 185, 129, 0.07); }
+.cmp td.best { color: var(--win); font-weight: 700; }
+.cmp .sub { display: block; margin-top: .1rem; font-size: .8rem; font-weight: 400; color: var(--muted); }
+.wl {
+  display: flex;
+  height: 8px;
+  min-width: 90px;
+  margin-bottom: .35rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+.wl-win { background: var(--win); }
+.wl-loss { background: var(--loss); }
+ 

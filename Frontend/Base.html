@@ -20,6 +20,7 @@
           <button class="tab" data-tab="predictions">Predictions</button>
           <button class="tab" data-tab="leaderboard">Leaderboard</button>
           <button class="tab" data-tab="following" id="followingTab" hidden>Following</button>
+          <button class="tab" data-tab="compare" id="compareTab" hidden>Compare</button>
           <button class="tab" data-tab="profile" id="profileTab" hidden>Profile</button>
         </nav>
         <div class="auth">
@@ -123,6 +124,17 @@
         </div>
         <div id="followingBody"></div>
       </section>
+
+      <section id="compare" class="panel" hidden>
+        <div class="posts-head">
+          <h2>Compare</h2>
+        </div>
+        <div class="card">
+          <div class="meta">Pick up to 5 friends to compare with you</div>
+          <div id="comparePicker" class="chips"></div>
+        </div>
+        <div id="compareBody"></div>
+      </section>      
 
       <section id="profile" class="panel" hidden>
         <div id="profileBody"></div>

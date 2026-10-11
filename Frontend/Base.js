@@ -36,7 +36,7 @@ const userLink = (u) =>
 const initial = (u) => esc((u || "?").trim().charAt(0).toUpperCase() || "?");
 
 // ---------- Tabs ----------
-const TABS = ["posts", "predictions", "leaderboard", "following", "profile"];
+const TABS = ["posts", "predictions", "leaderboard", "following", "compare", "profile"];
 
 function showTab(name) {
   document
@@ -50,6 +50,7 @@ document.querySelectorAll(".tab").forEach((btn) =>
     if (btn.dataset.tab === "profile") return openProfile(); // your own profile
     if (btn.dataset.tab === "following") return openFollowing();
     if (btn.dataset.tab === "leaderboard") return openLeaderboard();
+    if (btn.dataset.tab === "compare") return openCompare();
     showTab(btn.dataset.tab);
   })
 );
@@ -73,6 +74,9 @@ async function refresh() {
   if (!me && !$("profile").hidden) showTab("posts"); // logged out while on Profile
   $("followingTab").hidden = !me;
   if (!me && !$("following").hidden) showTab("posts"); // logged out while on Following
+  $("compareTab").hidden = !me;
+  if (!me) compareSel = [];
+  if (!me && !$("compare").hidden) showTab("posts"); // logged out while on Compare
   if (!me) {
     $("userSearch").value = "";
     $("searchResults").innerHTML = "";
@@ -862,5 +866,125 @@ $("userSearch").addEventListener("input", () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(runSearch, 300);
 });
+
+// ---------- Compare ----------
+const MAX_COMPARE = 5;
+let compareSel = []; // usernames picked to compare with (kept while the page is open)
+let comparePeople = []; // everyone you follow, for the picker
+
+async function openCompare() {
+  showTab("compare");
+  try {
+    comparePeople = await api("/api/following");
+    // forget anyone you no longer follow
+    compareSel = compareSel.filter((n) => comparePeople.some((u) => u.username === n));
+    renderComparePicker();
+  } catch (err) {
+    $("comparePicker").innerHTML = `<p class="error">Couldn't load your friends: ${esc(err.message)}</p>`;
+  }
+  loadCompare();
+}
+
+function renderComparePicker() {
+  const picker = $("comparePicker");
+  if (!comparePeople.length) {
+    picker.innerHTML =
+      '<p class="hint">Follow some people on the Following tab first, then pick them here to compare.</p>';
+    return;
+  }
+  const full = compareSel.length >= MAX_COMPARE;
+  picker.innerHTML = comparePeople
+    .map((u) => {
+      const on = compareSel.includes(u.username);
+      return `
+      <label class="chip ${on ? "on" : ""}">
+        <input type="checkbox" data-compare="${esc(u.username)}" ${on ? "checked" : ""} ${full && !on ? "disabled" : ""}>
+        ${esc(u.username)}
+      </label>`;
+    })
+    .join("");
+}
+
+$("comparePicker").addEventListener("change", (e) => {
+  const box = e.target.closest("[data-compare]");
+  if (!box) return;
+  const name = box.dataset.compare;
+  compareSel = box.checked
+    ? [...compareSel, name].slice(0, MAX_COMPARE)
+    : compareSel.filter((n) => n !== name);
+  renderComparePicker();
+  loadCompare();
+});
+
+async function loadCompare() {
+  const box = $("compareBody");
+  const key = compareSel.join(",");
+  try {
+    const rows = await api(`/api/compare?users=${encodeURIComponent(key)}`);
+    if (key !== compareSel.join(",")) return; // the picks changed while loading
+    box.innerHTML = renderCompare(rows);
+  } catch (err) {
+    box.innerHTML = `<p class="error">Couldn't load comparison: ${esc(err.message)}</p>`;
+  }
+}
+
+function renderCompare(rows) {
+  const pct = (v) => (v === null ? "—" : `${+v.toFixed(1)}%`);
+
+  // the best value in a row gets highlighted, but only when the values actually differ
+  const best = (key) => {
+    const vals = rows.map((r) => r[key]).filter((v) => v !== null);
+    return new Set(vals).size > 1 ? Math.max(...vals) : null;
+  };
+  const top = { reputation: best("reputation"), accuracy: best("accuracy") };
+
+  const row = (label, show, key) => `
+    <tr>
+      <th scope="row">${label}</th>
+      ${rows
+        .map(
+          (r) =>
+            `<td class="${r.is_me ? "me-col" : ""} ${key && top[key] !== null && r[key] === top[key] ? "best" : ""}">${show(r)}</td>`
+        )
+        .join("")}
+    </tr>`;
+
+  const winLoss = (r) =>
+    r.settled
+      ? `<div class="wl" aria-hidden="true">
+           <span class="wl-win" style="width:${Number(r.win_pct)}%"></span>
+           <span class="wl-loss" style="width:${Number(r.loss_pct)}%"></span>
+         </div>
+         ${pct(r.win_pct)} W · ${pct(r.loss_pct)} L`
+      : "—";
+
+  const head = rows
+    .map(
+      (r) =>
+        `<th scope="col" class="${r.is_me ? "me-col" : ""}">${r.is_me ? "You" : userLink(r.username)}</th>`
+    )
+    .join("");
+
+  return `
+    <div class="cmp-wrap">
+      <table class="cmp">
+        <thead><tr><th></th>${head}</tr></thead>
+        <tbody>
+          ${row("Reputation", (r) => esc(r.reputation), "reputation")}
+          ${row(
+            "Accuracy",
+            (r) => `${pct(r.accuracy)}<span class="sub">${r.correct} of ${r.settled} settled correct</span>`,
+            "accuracy"
+          )}
+          ${row("Win / loss %", winLoss)}
+          ${row("Record (W–L)", (r) => `${r.correct}–${r.incorrect}`)}
+          ${row("Pending", (r) => esc(r.pending))}
+          ${row("Total predictions", (r) => esc(r.total))}
+          ${row("Rep won / lost", (r) => `+${r.rep_gained} / −${r.rep_lost}`)}
+        </tbody>
+      </table>
+    </div>
+    ${rows.length === 1 ? '<p class="hint">Pick friends above to see them side by side with you.</p>' : ""}`;
+}
 
 refresh();
