@@ -67,9 +67,10 @@ def auto_settle_finished_games():
         actual_winner = "home" if p["home_score"] > p["away_score"] else "away"
         result = "correct" if p["pick"] == actual_winner else "incorrect"
 
-        payout = p["points"] * 2 if result == "correct" else 0 # double the payout since it is being held already and then on loss give 0 becuase the amount you would lose is already being held aswell
-        query("UPDATE predictions SET result = %s, payout = %s WHERE id = %s", 
-              (result, p["id"]), # leave payout for now may need to fix later
+        # the wager was already deducted when placed: a win returns it plus winnings (2x), a loss pays nothing more
+        payout = p["points"] * 2 if result == "correct" else 0
+        query("UPDATE predictions SET result = %s WHERE id = %s",
+              (result, p["id"]),
               fetch=False,)
         if payout:
             query("UPDATE users SET reputation = reputation + %s WHERE id = %s",
