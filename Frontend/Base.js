@@ -80,6 +80,10 @@ async function refresh() {
   if (!me) {
     $("userSearch").value = "";
     $("searchResults").innerHTML = "";
+    followView = "following";
+    $("followView")
+      .querySelectorAll("button")
+      .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === "following")));
   }
   $("postForm").hidden = $("predForm").hidden = !me;
   $("postsHint").hidden = $("predHint").hidden = !!me;
@@ -164,7 +168,7 @@ $("postView").addEventListener("click", (e) => {
   $("postView")
     .querySelectorAll("button")
     .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-  renderPosts();
+  loadPosts(); // re-fetch so the "people you follow" list is up to date
 });
 
 async function loadPosts() {
@@ -630,13 +634,18 @@ async function loadProfile(username) {
     const path = username
       ? `/api/users/${encodeURIComponent(username)}/profile`
       : "/api/profile";
-    box.innerHTML = renderProfile(await api(path));
+    const p = await api(path);
+    let picks = null;
+    try {
+      picks = await api(`/api/users/${encodeURIComponent(p.username)}/predictions`);
+    } catch (_) {} // the profile still shows if the picks fail to load
+    box.innerHTML = renderProfile(p, picks);
   } catch (err) {
     box.innerHTML = `<p class="error">Couldn't load profile: ${esc(err.message)}</p>`;
   }
 }
 
-function renderProfile(p) {
+function renderProfile(p, picks) {
   const s = p.predictions;
   const accuracy = s.accuracy === null ? "—" : `${Math.round(s.accuracy)}%`;
   const accuracyNote = s.settled
@@ -675,8 +684,56 @@ function renderProfile(p) {
       ${stat(`${s.correct}–${s.incorrect}`, "Record (W–L)", `${s.pending} pending · ${s.total} total`)}
       ${stat(`+${s.rep_gained}`, "Rep won", `−${s.rep_lost} lost on incorrect picks`)}
     </div>
+    ${picks ? renderPicks(picks) : '<p class="error">Couldn\'t load predictions.</p>'}
     <h3 class="section-title">Recent activity</h3>
     <div class="activity">${activity}</div>`;
+}
+
+// ---------- Picks (current + past predictions) ----------
+function pickCard(p) {
+  const kickoff = p.start_time
+    ? new Date(p.start_time).toLocaleString([], {
+        weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
+      })
+    : "";
+  let note = "";
+  if (p.result === "pending") {
+    note = p.status === "in_progress" ? "In progress" : kickoff ? `Starts ${kickoff}` : "";
+  } else if (p.status === "final" && p.home_score != null && p.away_score != null) {
+    note = `Final: ${p.away_team} ${p.away_score} – ${p.home_team} ${p.home_score}`;
+  }
+  const money =
+    p.result === "correct"
+      ? ` · <b class="w">+${p.points}</b>`
+      : p.result === "incorrect"
+        ? ` · <b class="l">−${p.points}</b>`
+        : "";
+  return `
+    <article class="pcard ${esc(p.result)}">
+      <div>
+        <h4>${esc(p.game)}</h4>
+        <p class="meta">${note ? esc(note) + " · " : ""}picked ${when(p.created_at)}</p>
+      </div>
+      <div class="pred-row">
+        <span class="pick">${esc(p.prediction_text)}</span>
+        <span class="wager">${p.points} rep wagered${money}</span>
+        <span class="result ${esc(p.result)}">${esc(p.result)}</span>
+      </div>
+    </article>`;
+}
+
+// inPanel: small headings inside a Following-tab row; otherwise full section headings (profile)
+function renderPicks(picks, inPanel = false) {
+  const head = (t) =>
+    inPanel ? `<h4 class="picks-title">${t}</h4>` : `<h3 class="section-title">${t}</h3>`;
+  const list = (items, empty) =>
+    items.length ? items.map(pickCard).join("") : `<p class="hint">${empty}</p>`;
+  const pastCount = picks.past.length + (picks.past.length >= 50 ? "+" : "");
+  return `
+    ${head(`Current picks (${picks.current.length})`)}
+    ${list(picks.current, "No open picks right now.")}
+    ${head(`Past picks (${pastCount})`)}
+    ${list(picks.past, "No settled picks yet.")}`;
 }
 
 function renderActivity(a) {
@@ -705,18 +762,58 @@ function openFollowing() {
   loadFollowing();
 }
 
+let followView = "following"; // "following" or "followers"
+
+$("followView").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-v]");
+  if (!b || !me) return;
+  followView = b.dataset.v;
+  $("followView")
+    .querySelectorAll("button")
+    .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  loadFollowing();
+});
+
 async function loadFollowing() {
   const box = $("followingBody");
+  const view = followView;
   box.innerHTML = '<p class="hint">Loading…</p>';
   try {
-    const [people, feed] = await Promise.all([
-      api("/api/following"),
-      api("/api/following/feed")
-    ]);
-    box.innerHTML = renderFollowing(people, feed);
+    let html;
+    if (view === "followers") {
+      html = renderFollowers(await api("/api/followers"));
+    } else {
+      const [people, feed] = await Promise.all([
+        api("/api/following"),
+        api("/api/following/feed")
+      ]);
+      html = renderFollowing(people, feed);
+    }
+    if (view !== followView) return; // the toggle changed while loading
+    box.innerHTML = html;
   } catch (err) {
-    box.innerHTML = `<p class="error">Couldn't load following: ${esc(err.message)}</p>`;
+    box.innerHTML = `<p class="error">Couldn't load ${view}: ${esc(err.message)}</p>`;
   }
+}
+
+// one person in the Following / Followers list, with a Picks button that opens their predictions
+function personRow(u, note, isFollowing) {
+  return `
+    <div class="follow-item">
+      <div class="follow-row">
+        <span class="avatar" aria-hidden="true">${initial(u.username)}</span>
+        <div class="follow-who">
+          ${userLink(u.username)}
+          <span class="meta">${u.reputation} rep · ${note}</span>
+        </div>
+        <div class="follow-actions">
+          <button type="button" class="btn btn-outline" data-picks="${esc(u.username)}" aria-expanded="false">Picks</button>
+          <button type="button" class="btn ${isFollowing ? "btn-outline" : ""}"
+            data-follow="${esc(u.username)}" data-following="${isFollowing ? 1 : 0}" data-where="list">${isFollowing ? "Unfollow" : "Follow back"}</button>
+        </div>
+      </div>
+      <div class="picks-panel" hidden></div>
+    </div>`;
 }
 
 function renderFollowing(people, feed) {
@@ -726,17 +823,7 @@ function renderFollowing(people, feed) {
       <p class="hint">You're not following anyone yet. Click a username on a post or prediction to open their profile and follow them.</p>`;
 
   const rows = people
-    .map(
-      (u) => `
-      <div class="follow-row">
-        <div>
-          ${userLink(u.username)}
-          <span class="meta">${u.reputation} rep · following since ${when(u.followed_at)}</span>
-        </div>
-        <button type="button" class="btn btn-outline"
-          data-follow="${esc(u.username)}" data-following="1" data-where="list">Unfollow</button>
-      </div>`
-    )
+    .map((u) => personRow(u, `following since ${when(u.followed_at)}`, true))
     .join("");
 
   const activity = feed.length
@@ -749,6 +836,40 @@ function renderFollowing(people, feed) {
     <h3 class="section-title">Their activity</h3>
     <div class="activity">${activity}</div>`;
 }
+
+function renderFollowers(people) {
+  if (!people.length)
+    return `
+      <h3 class="section-title">Followers (0)</h3>
+      <p class="hint">Nobody follows you yet.</p>`;
+  const rows = people
+    .map((u) => personRow(u, `followed you ${when(u.followed_at)}`, u.is_following))
+    .join("");
+  return `
+    <h3 class="section-title">Followers (${people.length})</h3>
+    <div class="follow-list">${rows}</div>`;
+}
+
+// "Picks" button: show or hide that person's current and past predictions under their row
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-picks]");
+  if (!btn) return;
+  const item = btn.closest(".follow-item");
+  const panel = item.querySelector(".picks-panel");
+  const open = btn.getAttribute("aria-expanded") !== "true";
+  btn.setAttribute("aria-expanded", String(open));
+  item.classList.toggle("open", open);
+  panel.hidden = !open;
+  if (!open || panel.dataset.loaded) return;
+  panel.innerHTML = '<p class="hint">Loading picks…</p>';
+  try {
+    const picks = await api(`/api/users/${encodeURIComponent(btn.dataset.picks)}/predictions`);
+    panel.innerHTML = renderPicks(picks, true);
+    panel.dataset.loaded = "1";
+  } catch (err) {
+    panel.innerHTML = `<p class="error">Couldn't load picks: ${esc(err.message)}</p>`;
+  }
+});
 
 // Follow / Unfollow buttons (on a profile and in the Following list)
 document.addEventListener("click", async (e) => {
@@ -897,22 +1018,26 @@ function renderComparePicker() {
     .map((u) => {
       const on = compareSel.includes(u.username);
       return `
-      <label class="chip ${on ? "on" : ""}">
-        <input type="checkbox" data-compare="${esc(u.username)}" ${on ? "checked" : ""} ${full && !on ? "disabled" : ""}>
-        ${esc(u.username)}
-      </label>`;
+      <button type="button" class="cmp-pick" data-compare="${esc(u.username)}" aria-pressed="${on}" ${full && !on ? "disabled" : ""}>
+        <span class="avatar" aria-hidden="true">${initial(u.username)}</span>
+        <span>${esc(u.username)}</span>
+      </button>`;
     })
     .join("");
 }
 
-$("comparePicker").addEventListener("change", (e) => {
-  const box = e.target.closest("[data-compare]");
-  if (!box) return;
-  const name = box.dataset.compare;
-  compareSel = box.checked
-    ? [...compareSel, name].slice(0, MAX_COMPARE)
-    : compareSel.filter((n) => n !== name);
+$("comparePicker").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-compare]");
+  if (!btn || btn.disabled) return;
+  const name = btn.dataset.compare;
+  compareSel = compareSel.includes(name)
+    ? compareSel.filter((n) => n !== name)
+    : [...compareSel, name].slice(0, MAX_COMPARE);
   renderComparePicker();
+  // the buttons were redrawn, so give keyboard focus back to the one that was used
+  [...$("comparePicker").querySelectorAll("[data-compare]")]
+    .find((x) => x.dataset.compare === name)
+    ?.focus();
   loadCompare();
 });
 
@@ -961,14 +1086,19 @@ function renderCompare(rows) {
   const head = rows
     .map(
       (r) =>
-        `<th scope="col" class="${r.is_me ? "me-col" : ""}">${r.is_me ? "You" : userLink(r.username)}</th>`
+        `<th scope="col" class="${r.is_me ? "me-col" : ""}">
+           <div class="cmp-user">
+             <span class="avatar" aria-hidden="true">${initial(r.username)}</span>
+             ${r.is_me ? "You" : userLink(r.username)}
+           </div>
+         </th>`
     )
     .join("");
 
   return `
     <div class="cmp-wrap">
       <table class="cmp">
-        <thead><tr><th></th>${head}</tr></thead>
+        <thead><tr><th scope="col" class="cmp-corner">Stats</th>${head}</tr></thead>
         <tbody>
           ${row("Reputation", (r) => esc(r.reputation), "reputation")}
           ${row(

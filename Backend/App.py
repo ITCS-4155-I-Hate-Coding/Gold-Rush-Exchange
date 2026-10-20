@@ -148,6 +148,13 @@ def user_profile(username):
     data = profile.get_profile_by_username(username, viewer_id=session.get("user_id"))
     return (jsonify(data), 200) if data else (jsonify(error="User not found."), 404)
 
+
+@app.get("/api/users/<username>/predictions")
+def user_predictions(username):
+    # public, like /api/predictions, so a profile can show a user's current and past picks
+    data = profile.get_predictions_by_username(username)
+    return (jsonify(data), 200) if data else (jsonify(error="User not found."), 404)
+    
 # ---------- Following ----------
 @app.post("/api/users/<username>/follow")
 def follow_route(username):

@@ -93,3 +93,33 @@ def get_profile(user_id, recent_limit=RECENT_LIMIT, viewer_id=None):
 def get_profile_by_username(username, viewer_id=None):
     user = query("SELECT id FROM users WHERE username = %s", (username,), fetchone=True)
     return get_profile(user["id"], viewer_id=viewer_id) if user else None
+
+
+# the columns shown for each pick; games is LEFT JOINed so older picks without a game still show
+PICK_COLUMNS = (
+    "p.id, p.game, p.prediction_text, p.points, p.result, p.created_at, "
+    "g.home_team, g.away_team, g.start_time, g.status, g.home_score, g.away_score"
+)
+PAST_LIMIT = 50
+
+
+def get_predictions_by_username(username):
+    user = query("SELECT id FROM users WHERE username = %s", (username,), fetchone=True)
+    if not user:
+        return None
+
+    # current = still pending, soonest game first
+    current = query(
+        "SELECT " + PICK_COLUMNS + " FROM predictions p LEFT JOIN games g ON g.id = p.game_id "
+        "WHERE p.user_id = %s AND p.result = 'pending' "
+        "ORDER BY g.start_time ASC NULLS LAST, p.created_at DESC",
+        (user["id"],),
+    )
+    # past = already settled (correct or incorrect), newest first
+    past = query(
+        "SELECT " + PICK_COLUMNS + " FROM predictions p LEFT JOIN games g ON g.id = p.game_id "
+        "WHERE p.user_id = %s AND p.result <> 'pending' "
+        "ORDER BY p.created_at DESC LIMIT %s",
+        (user["id"], PAST_LIMIT),
+    )
+    return {"username": username, "current": current, "past": past}    

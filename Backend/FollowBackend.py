@@ -95,3 +95,21 @@ def search_users(user_id, text, limit=10):
         (user_id, user_id, "%" + safe + "%", safe + "%", limit),
         
     )
+
+
+
+def get_followers(user_id):
+    # everyone who follows this user, newest follower first,
+    # plus whether this user already follows them back
+    return query(
+        """
+        SELECT u.username, u.reputation, f.created_at AS followed_at,
+               EXISTS(SELECT 1 FROM follows b
+                      WHERE b.follower_id = %s AND b.followed_id = u.id) AS is_following
+        FROM follows f
+        JOIN users u ON u.id = f.follower_id
+        WHERE f.followed_id = %s
+        ORDER BY f.created_at DESC
+        """,
+        (user_id, user_id),
+    )

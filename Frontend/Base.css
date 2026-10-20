@@ -646,9 +646,9 @@ dialog h2 {
 .lb-row .badge { margin-left: auto; flex: none; }
 
 /* Compare */
-.pick-list { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .7rem; }
-.pick-list:empty { display: none; }
-.pick {
+.cmp-pick-list { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .7rem; }
+.cmp-pick-list:empty { display: none; }
+.cmp-pick {
   display: inline-flex;
   align-items: center;
   gap: .55rem;
@@ -660,13 +660,13 @@ dialog h2 {
   font: 600 .95rem "Source Sans 3", sans-serif;
   cursor: pointer;
 }
-.pick .avatar { width: 1.9rem; height: 1.9rem; font-size: .95rem; opacity: .65; }
-.pick:hover { border-color: var(--gold); }
-.pick[aria-pressed="true"] { background: var(--green-deep); border-color: var(--green); color: var(--win); }
-.pick[aria-pressed="true"] .avatar { opacity: 1; box-shadow: 0 0 0 2px var(--green); }
-.pick[aria-pressed="true"]::after { content: "\2713"; margin-left: .1rem; }
-.pick:disabled { opacity: .4; cursor: not-allowed; }
-.pick:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.cmp-pick .avatar { width: 1.9rem; height: 1.9rem; font-size: .95rem; opacity: .65; }
+.cmp-pick:hover { border-color: var(--gold); }
+.cmp-pick[aria-pressed="true"] { background: var(--green-deep); border-color: var(--green); color: var(--win); }
+.cmp-pick[aria-pressed="true"] .avatar { opacity: 1; box-shadow: 0 0 0 2px var(--green); }
+.cmp-pick[aria-pressed="true"]::after { content: "\2713"; margin-left: .1rem; }
+.cmp-pick:disabled { opacity: .4; cursor: not-allowed; }
+.cmp-pick:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 .cmp-wrap {
   overflow-x: auto;
@@ -705,3 +705,31 @@ dialog h2 {
 .wl-win { background: var(--win); }
 .wl-loss { background: var(--loss); }
  
+
+/* Picks (Following tab and profile) */
+.follow-item { margin-bottom: .5rem; }
+.follow-item .follow-row { margin-bottom: 0; flex-wrap: wrap; }
+.follow-item.open .follow-row { border-radius: 6px 6px 0 0; }
+.follow-who { flex: 1; min-width: 0; }
+.follow-who .meta { display: inline; margin: 0 0 0 .5rem; }
+.follow-actions { display: flex; flex: none; gap: .5rem; }
+[data-picks]::after { content: " \25BE"; }
+[data-picks][aria-expanded="true"]::after { content: " \25B4"; }
+.picks-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  padding: .8rem 1rem;
+}
+.picks-title {
+  margin: .2rem 0 .5rem;
+  font-size: .8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--muted);
+}
+.picks-panel .picks-title:not(:first-child) { margin-top: 1rem; }
+.picks-panel .pcard { margin-bottom: .5rem; }
+.picks-panel > .hint { margin: 0 0 .5rem; }

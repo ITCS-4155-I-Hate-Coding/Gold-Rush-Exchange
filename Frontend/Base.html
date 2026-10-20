@@ -113,6 +113,13 @@
       </section>
 
       <section id="following" class="panel" hidden>
+        <div class="posts-head">
+          <h2>People</h2>
+          <div class="seg" id="followView" role="group" aria-label="Show people">
+            <button type="button" data-v="following" aria-pressed="true">Following</button>
+            <button type="button" data-v="followers" aria-pressed="false">Followers</button>
+          </div>
+        </div>
         <div class="card">
           <input
             id="userSearch"
@@ -131,7 +138,7 @@
         </div>
         <div class="card">
           <div class="meta">Pick up to 5 friends to compare with you</div>
-          <div id="comparePicker" class="chips"></div>
+          <div id="comparePicker" class="cmp-pick-list"></div>
         </div>
         <div id="compareBody"></div>
       </section>      
