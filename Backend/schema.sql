@@ -109,3 +109,36 @@ CREATE TABLE IF NOT EXISTS follows (
     CHECK (follower_id <> followed_id)
 );
 CREATE INDEX IF NOT EXISTS idx_follows_followed_id ON follows(followed_id);
+
+
+-- Achievements (for gamification; users can earn achievements for various actions)
+-- achievements table is the list of everything that can be earned
+-- user_achievements table is the list of which users have earned which achievements
+-- will come from the catalog of achievements in AchievementsBackend.py
+CREATE TABLE IF NOT EXISTS achievements (
+    code TEXT PRIMARY KEY, -- unique for each achievement
+    track TEXT NOT NULL, -- category of achievement like "predictions", "posts", "comments", "follows"
+    name TEXT NOT NULL, -- achievement name
+    description TEXT NOT NULL, -- achievement description
+    tier TEXT NOT NULL CHECK (tier IN ('bronze', 'silver', 'gold', 'platinum', 'diamond')),
+    value INT NOT NULL CHECK (value > 0), -- achievement score this is worth
+    threshold INT NOT NULL, -- number of actions required to earn this achievement
+    sort_order INT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- which user earned which achievements
+-- using a key to make sure that the user cannot earn the same achievement twice
+-- adding on delete cascade so that if a user is deleted, their achievements are also deleted
+CREATE TABLE IF NOT EXISTS user_achievements (
+    user_id INT NOT NULL REFERENCES uses(id) ON DELETE CASCADE,
+    code TEXT NOT NULL REFERENCES achievements(code) ON DELETE CASCADE,
+    earned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    featured BOOLEAN NOT NULL DEFAULT false, -- shown next to user name and we will haev a max of 3 badges showing for the time being
+    seen BOOLEAN NOT NULL DEFAULT false, -- shows the achievement as locked until they earn it
+    PRIMARY KEY (user_id, code)
+);
+
+-- indexing
+CREATE INDEX IF NOT EXISTS idx_user_achievements_code ON user_achievements(code);
+CREATE INDEX IF NOT EXISTS idx_user_achievements_featured ON user_achivements(user_id) WHERE featured;
