@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS achievements (
 -- using a key to make sure that the user cannot earn the same achievement twice
 -- adding on delete cascade so that if a user is deleted, their achievements are also deleted
 CREATE TABLE IF NOT EXISTS user_achievements (
-    user_id INT NOT NULL REFERENCES uses(id) ON DELETE CASCADE,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     code TEXT NOT NULL REFERENCES achievements(code) ON DELETE CASCADE,
     earned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     featured BOOLEAN NOT NULL DEFAULT false, -- shown next to user name and we will haev a max of 3 badges showing for the time being
@@ -141,4 +141,4 @@ CREATE TABLE IF NOT EXISTS user_achievements (
 
 -- indexing
 CREATE INDEX IF NOT EXISTS idx_user_achievements_code ON user_achievements(code);
-CREATE INDEX IF NOT EXISTS idx_user_achievements_featured ON user_achivements(user_id) WHERE featured;
+CREATE INDEX IF NOT EXISTS idx_user_achievements_featured ON user_achievements(user_id) WHERE featured;
