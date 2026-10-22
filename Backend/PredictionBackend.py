@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 from db import query
+import AchievementBackend as achievements
 
 
 def create_prediction(user_id, game_id, pick, points):
@@ -61,6 +62,7 @@ def auto_settle_finished_games():
         " FROM predictions JOIN games on games.id = predictions.game_id WHERE predictions.result = 'pending' AND games.status = 'final'"
     )
     settled = 0
+    settled_users = set()
     for p in pending:
         if p["home_score"] == p["away_score"]:
             continue # not guessing on ties
@@ -77,6 +79,8 @@ def auto_settle_finished_games():
                   (payout, p["user_id"]),
                   fetch=False,)
         settled += 1
+        settled_users.add(p["user_id"])
+    achievements.try_check(*settled_users)
     return settled
 
 
