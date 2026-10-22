@@ -19,9 +19,15 @@
           <button class="tab active" data-tab="posts">Posts</button>
           <button class="tab" data-tab="predictions">Predictions</button>
           <button class="tab" data-tab="leaderboard">Leaderboard</button>
-          <button class="tab" data-tab="following" id="followingTab" hidden>Following</button>
-          <button class="tab" data-tab="compare" id="compareTab" hidden>Compare</button>
-          <button class="tab" data-tab="profile" id="profileTab" hidden>Profile</button>
+          <button class="tab" data-tab="following" id="followingTab" hidden>
+            Following
+          </button>
+          <button class="tab" data-tab="compare" id="compareTab" hidden>
+            Compare
+          </button>
+          <button class="tab" data-tab="profile" id="profileTab" hidden>
+            Profile
+          </button>
         </nav>
         <div class="auth">
           <span id="userLabel" hidden></span>
@@ -35,9 +41,19 @@
       <section id="posts" class="panel">
         <div class="posts-head">
           <h2>Posts</h2>
-          <div class="seg" id="postView" role="group" aria-label="Show posts" hidden>
-            <button type="button" data-v="global" aria-pressed="true">Global</button>
-            <button type="button" data-v="following" aria-pressed="false">Following</button>
+          <div
+            class="seg"
+            id="postView"
+            role="group"
+            aria-label="Show posts"
+            hidden
+          >
+            <button type="button" data-v="global" aria-pressed="true">
+              Global
+            </button>
+            <button type="button" data-v="following" aria-pressed="false">
+              Following
+            </button>
           </div>
         </div>
         <form id="postForm" class="card" hidden>
@@ -104,9 +120,36 @@
       <section id="leaderboard" class="panel" hidden>
         <div class="posts-head">
           <h2>Leaderboard</h2>
-          <div class="seg" id="lbView" role="group" aria-label="Show leaderboard" hidden>
+          <!-- <div class="seg" id="lbView" role="group" aria-label="Show leaderboard" hidden>
             <button type="button" data-v="global" aria-pressed="true">Global</button>
-            <button type="button" data-v="following" aria-pressed="false">Following</button>
+            <button type="button" data-v="following" aria-pressed="false">Following</button> -->
+
+          <!-- ACHIEVEMENTS the two toggles are wrapped in .head-controls so they sit side by side.
+          #lbSort (new) switches the ranking between reputation and achievement score;
+          #lbView is the existing Global / Following toggle, unchanged -->
+          <div class="head-controls">
+            <div class="seg" id="lbSort" role="group" aria-label="Rank by">
+              <button type="button" data-s="reputation" aria-pressed="true">
+                Reputation
+              </button>
+              <button type="button" data-s="achievements" aria-pressed="false">
+                Achievements
+              </button>
+            </div>
+            <div
+              class="seg"
+              id="lbView"
+              role="group"
+              aria-label="Show leaderboard"
+              hidden
+            >
+              <button type="button" data-v="global" aria-pressed="true">
+                Global
+              </button>
+              <button type="button" data-v="following" aria-pressed="false">
+                Following
+              </button>
+            </div>
           </div>
         </div>
         <div id="lbList"></div>
@@ -115,9 +158,18 @@
       <section id="following" class="panel" hidden>
         <div class="posts-head">
           <h2>People</h2>
-          <div class="seg" id="followView" role="group" aria-label="Show people">
-            <button type="button" data-v="following" aria-pressed="true">Following</button>
-            <button type="button" data-v="followers" aria-pressed="false">Followers</button>
+          <div
+            class="seg"
+            id="followView"
+            role="group"
+            aria-label="Show people"
+          >
+            <button type="button" data-v="following" aria-pressed="true">
+              Following
+            </button>
+            <button type="button" data-v="followers" aria-pressed="false">
+              Followers
+            </button>
           </div>
         </div>
         <div class="card">
@@ -141,7 +193,7 @@
           <div id="comparePicker" class="cmp-pick-list"></div>
         </div>
         <div id="compareBody"></div>
-      </section>      
+      </section>
 
       <section id="profile" class="panel" hidden>
         <div id="profileBody"></div>
@@ -227,6 +279,13 @@
       </form>
     </dialog>
     <div id="successMessage" role="status" hidden></div>
+    <button
+      type="button"
+      id="achToast"
+      aria-live="polite"
+      title="See your achievements"
+      hidden
+    ></button>
 
     <script src="Base.js"></script>
   </body>
