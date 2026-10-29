@@ -135,7 +135,8 @@ CREATE TABLE IF NOT EXISTS user_achievements (
     code TEXT NOT NULL REFERENCES achievements(code) ON DELETE CASCADE,
     earned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     featured BOOLEAN NOT NULL DEFAULT false, -- shown next to user name and we will haev a max of 3 badges showing for the time being
-    seen BOOLEAN NOT NULL DEFAULT false, -- true wonce the achievement unlocked message has been shown
+    seen BOOLEAN NOT NULL DEFAULT false, -- true once the achievement unlocked message has been shown
+    PRIMARY KEY (user_id, code)
 );
 
 -- indexing

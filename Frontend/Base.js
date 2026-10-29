@@ -101,27 +101,27 @@ const BADGE_GLYPHS = {
   rank: '<path d="M3.5 8 8 12.2 12 5l4 7.2L20.5 8 18.8 19H5.2z"/><path d="M5.2 19h13.6"/>'
 };
 
-// each tier's badge is a gradient from a light colour (top left) to a dark one (bottom right).
-// Rarity colours follow the convention most games use (grey, green, blue, purple, gold),
-// so players can tell how rare a badge is at a glance. Legendary uses the site's gold.
+// each tier's badge is a metallic gradient: a highlight (top left), the metal's main colour
+// (middle) and a deep shadow (bottom right). The strong light-to-dark range is what makes
+// them look shiny instead of flat. Platinum leans lavender so it can't be mistaken for silver.
 // The same colours are repeated as .tier-* classes in Base.css for text and borders.
 const TIER_COLORS = {
-  bronze: ["#f2b27a", "#8a4b1f"],
-  silver: ["#f1f4f7", "#7d8893"],
-  gold: ["#fff0a8", "#c08a1a"],
-  platinum: ["#ffffff", "#a9b6c2"],
-  diamond: ["#e6f9ff", "#2f9fd8"]
+  bronze: ["#ffd0a1", "#d9782f", "#7a3a12"],
+  silver: ["#ffffff", "#c3ced9", "#5d6b7a"],
+  gold: ["#fff6c2", "#f5bd2a", "#a86a05"],
+  platinum: ["#f3eeff", "#b9a8ff", "#5b45b8"],
+  diamond: ["#f0feff", "#4fd6ff", "#1157d6"]
 };
 
 // gradients are defined once in a hidden <svg> so every badge can reference them by id
-// (fill="url(#tier-rare)"). Defining a gradient inside every badge would repeat the same
+// (fill="url(#tier-gold)"). Defining a gradient inside every badge would repeat the same
 // ids many times on the page, which is invalid HTML and can draw the wrong colours.
 // This runs once, as soon as the script loads.
 (function addBadgeDefs() {
   const stops = Object.entries(TIER_COLORS)
     .map(
-      ([t, [a, b]]) =>
-        `<linearGradient id="tier-${t}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`
+      ([t, [a, b, c]]) =>
+        `<linearGradient id="tier-${t}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset=".5" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient>`
     )
     .join("");
   document.body.insertAdjacentHTML(
@@ -140,7 +140,7 @@ function badgeSvg(code, size = 20, locked = false) {
   if (!a) return ""; // unknown code (catalog didn't load, or an achievement was removed)
   return `<svg class="bdg-svg tier-${a.tier}${locked ? " locked" : ""}" width="${size}" height="${size}" viewBox="0 0 48 48" aria-hidden="true">
     <polygon points="24,2 43.05,13 43.05,35 24,46 4.95,35 4.95,13" fill="url(#tier-${a.tier})"/>
-    <polygon points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75" fill="rgba(6,14,11,.42)"/>
+    <polygon points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75" fill="rgba(6,14,11,.3)"/>
     <g transform="translate(14 14) scale(.8333)" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">${BADGE_GLYPHS[a.track] || ""}</g>
   </svg>`;
 }
@@ -522,6 +522,12 @@ async function refresh() {
   if (me) startSummaryPolling();
   else stopSummaryPolling();
   if (!me) compareSel = [];
+  if (!me) {
+    // don't leave the last person's conversation on the page after logging out
+    chatWith = null;
+    stopChatPolling();
+    $("chatList").innerHTML = $("chatMain").innerHTML = "";
+  }
   if (!me && !$("compare").hidden) showTab("posts"); // logged out while on Compare
   if (!me) {
     $("userSearch").value = "";
@@ -1187,7 +1193,8 @@ function renderProfile(p, picks, ach) {
       ${stat(`+${s.rep_gained}`, "Rep won", `−${s.rep_lost} lost on incorrect picks`)}
     </div>
     ${picks ? renderPicks(picks) : '<p class="error">Couldn\'t load predictions.</p>'}
-    <section class="ach">${renderAchievements(ach, p.is_me)}</section>    <h3 class="section-title">Recent activity</h3>
+    <section class="ach">${renderAchievements(ach, p.is_me)}</section>
+    <h3 class="section-title">Recent activity</h3>
     <div class="activity">${activity}</div>`;
 }
 
@@ -1829,8 +1836,9 @@ let chatConversations = [];
 async function openMessages(username) {
   showTab("messages");
   await loadConversations();
-  if (username) openChat(username);
-  else if (!chatWith) renderChatEmpty();
+  // coming back to the tab reopens the last conversation so it starts checking for messages again
+  if (username || chatWith) openChat(username || chatWith);
+  else renderChatEmpty();
 }
 
 async function loadConversations() {

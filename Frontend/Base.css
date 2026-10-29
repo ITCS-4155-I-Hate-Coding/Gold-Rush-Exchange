@@ -1214,24 +1214,24 @@ dialog h2 {
    Each .tier-* class sets two CSS variables; the rules below use var(--tier) and
    var(--tier-bg), so one rule like .tier-pill works for every tier instead of five copies. */
 .tier-bronze {
-  --tier: #d08a4a;
-  --tier-bg: rgba(208, 138, 74, 0.12);
+  --tier: #e8955a;
+  --tier-bg: rgba(232, 149, 90, 0.14);
 }
 .tier-silver {
-  --tier: #b8c2cc;
-  --tier-bg: rgba(184, 194, 204, 0.10);
+  --tier: #cfd8e1;
+  --tier-bg: rgba(207, 216, 225, 0.12);
 }
 .tier-gold {
-  --tier: #f2c14e;
-  --tier-bg: rgba(242, 193, 78, 0.12);
+  --tier: #ffc93c;
+  --tier-bg: rgba(255, 201, 60, 0.15);
 }
 .tier-platinum {
-  --tier: #e4ecf2;
-  --tier-bg: rgba(228, 236, 242, 0.11);
+  --tier: #c4b5ff;
+  --tier-bg: rgba(196, 181, 255, 0.14);
 }
 .tier-diamond {
-  --tier: #7fdcff;
-  --tier-bg: rgba(127, 220, 255, 0.13);
+  --tier: #5fdcff;
+  --tier-bg: rgba(95, 220, 255, 0.15);
 }
 
 /* small badges after a username. line-height: 0 stops the inline SVG from adding extra
@@ -1250,9 +1250,16 @@ dialog h2 {
   display: block;
   flex: none;
 }
-/* legendary badges get a soft icy glow so the rarest ones stand out even at 18px */
+/* the top three tiers get a soft glow in their colour so they stand out even at 18px;
+   diamond's is the strongest */
+.bdg-svg.tier-gold {
+  filter: drop-shadow(0 0 2px rgba(255, 201, 60, 0.45));
+}
+.bdg-svg.tier-platinum {
+  filter: drop-shadow(0 0 2.5px rgba(185, 168, 255, 0.55));
+}
 .bdg-svg.tier-diamond {
-  filter: drop-shadow(0 0 3px rgba(127, 220, 255, 0.6));
+  filter: drop-shadow(0 0 4px rgba(79, 214, 255, 0.75));
 }
 /* not earned yet: grey and faded, but the shape and icon still show what it will be */
 .bdg-svg.locked {

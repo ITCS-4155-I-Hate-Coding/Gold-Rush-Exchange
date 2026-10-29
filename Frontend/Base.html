@@ -173,29 +173,29 @@
         border: 1px solid;
       }
       #landing .t1 {
-        color: #d08a4a;
-        background: rgba(208, 138, 74, 0.12);
-        border-color: rgba(208, 138, 74, 0.45);
+        color: #e8955a;
+        background: rgba(232, 149, 90, 0.14);
+        border-color: rgba(232, 149, 90, 0.5);
       }
       #landing .t2 {
-        color: #b8c2cc;
-        background: rgba(184, 194, 204, 0.1);
-        border-color: rgba(184, 194, 204, 0.45);
+        color: #cfd8e1;
+        background: rgba(207, 216, 225, 0.12);
+        border-color: rgba(207, 216, 225, 0.5);
       }
       #landing .t3 {
-        color: #f2c14e;
-        background: rgba(242, 193, 78, 0.14);
-        border-color: rgba(242, 193, 78, 0.45);
+        color: #ffc93c;
+        background: rgba(255, 201, 60, 0.15);
+        border-color: rgba(255, 201, 60, 0.5);
       }
       #landing .t4 {
-        color: #e4ecf2;
-        background: rgba(228, 236, 242, 0.12);
-        border-color: rgba(228, 236, 242, 0.45);
+        color: #c4b5ff;
+        background: rgba(196, 181, 255, 0.14);
+        border-color: rgba(196, 181, 255, 0.5);
       }
       #landing .t5 {
-        color: #7fdcff;
-        background: rgba(127, 220, 255, 0.13);
-        border-color: rgba(127, 220, 255, 0.45);
+        color: #5fdcff;
+        background: rgba(95, 220, 255, 0.15);
+        border-color: rgba(95, 220, 255, 0.5);
       }
       #landing .lp-final {
         text-align: center;
@@ -229,10 +229,10 @@
           <button class="tab" data-tab="predictions">Predictions</button>
           <button class="tab" data-tab="leaderboard">Leaderboard</button>
           <button class="tab" data-tab="following" id="followingTab" hidden>
-            <button class="tab" data-tab="messages" id="messagesTab" hidden>
-              Messages <span class="tab-count" id="msgCount" hidden></span>
-            </button>
             Following
+          </button>
+          <button class="tab" data-tab="messages" id="messagesTab" hidden>
+            Messages <span class="tab-count" id="msgCount" hidden></span>
           </button>
           <button class="tab" data-tab="compare" id="compareTab" hidden>
             Compare
@@ -852,7 +852,6 @@
         brand.addEventListener("keydown", (e) => {
           if (e.key === "Enter") showHome();
         });
-        document.getElementById("achToast").addEventListener("click", showApp);
 
         // call-to-action buttons: logged out -> open login (stay on home); logged in -> go to Predictions
         const start = () => {
@@ -875,7 +874,9 @@
         document.querySelectorAll(".lp-pick").forEach((b) =>
           b.addEventListener("click", () => {
             team = b.dataset.team;
-            // document.querySelectorAll(".lp-pick").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+            document
+              .querySelectorAll(".lp-pick")
+              .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
             draw();
           })
         );

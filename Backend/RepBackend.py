@@ -104,7 +104,19 @@ def reward_like(author_id, liker_id, item_type, item_id, tx=None):
     """+1 to the author when someone else likes their post or comment (once per liker per item)."""
     if not author_id or author_id == liker_id:
         return 0
-    return _award("like_received", author_id, f"like:{item_type}:{item_id}:{liker_id}", tx=tx)
+    key = f"like:{item_type}:{item_id}:{liker_id}"
+    if not tx:
+        return _award("like_received", author_id, key)
+    # a savepoint so a failed reward only undoes itself, never the like it's part of
+    tx.query("SAVEPOINT like_reward", fetch=False)
+    try:
+        paid = _award("like_received", author_id, key, tx=tx)
+    except Exception as e:  # noqa: BLE001
+        tx.query("ROLLBACK TO SAVEPOINT like_reward", fetch=False)
+        print(f"[rep] like reward failed: {e}")
+        return 0
+    tx.query("RELEASE SAVEPOINT like_reward", fetch=False)
+    return paid
 
 
 def maybe_top_up(user_id):
