@@ -14,6 +14,7 @@ Achievements will be permanent unless acount is deleted
 """
 
 from db import query
+import NotificationBackend as notifications
 
 # amount of badges user can show at once
 MAX_FEATURED = 3
@@ -174,8 +175,8 @@ pred AS (
     SELECT
         COUNT(*) AS total_preds,
         COUNT(*) FILTER (WHERE p.result = 'correct') AS correct,
-        COUNT(*) FILTER (WHERE p.result <> 'pending') AS settled,
-        COALESCE(SUM(p.points) FILTER (WHERE p.result = 'correct'), 0) AS rep_won,
+        COUNT(*) FILTER (WHERE p.result IN ('correct', 'incorrect')) AS settled,
+            COALESCE(SUM(p.points) FILTER (WHERE p.result = 'correct'), 0) AS rep_won,
         COALESCE(MAX(p.points) FILTER (WHERE p.result = 'correct'), 0) AS biggest_win,
         COUNT(*) FILTER (WHERE p.result = 'correct' AND (
             (p.pick = 'home' AND g.home_rank IS NULL AND g.away_rank IS NOT NULL) OR
@@ -194,8 +195,7 @@ ordered AS (
         - ROW_NUMBER() OVER (PARTITION BY p.result ORDER BY COALESCE(g.start_time, p.created_at), p.id) AS grp
     FROM predictions p
     LEFT JOIN games g ON g.id = p.game_id
-    WHERE p.user_id = %(uid)s AND p.result <> 'pending'
-),
+    WHERE p.user_id = %(uid)s AND p.result IN ('correct', 'incorrect')),
 streak AS (
     SELECT COALESCE(MAX(n), 0) AS best_streak
     FROM (SELECT COUNT(*) AS n FROM ordered WHERE result = 'correct' GROUP BY grp) runs
@@ -209,11 +209,14 @@ SELECT
     -- likes from other people only, so liking your own posts does NOT count
     -- counted from likes table
     (SELECT COUNT(*) FROM post_likes pl JOIN posts po ON po.id = pl.post_id WHERE po.user_id = me.id AND pl.user_id <> me.id)
-    + (SELECT COUNT(*) FROM comment_likes cl JOIN comments co ON co.id = cl.comment_id WHERE co.user_id = me.id AND cl.user_id <> me.id) AS likes_recieved,
-    (SELECT COUNT(*) FROM follows WHERE followed_id = me.id) AS followers,
+    + (SELECT COUNT(*) FROM comment_likes cl JOIN comments co ON co.id = cl.comment_id WHERE co.user_id = me.id AND cl.user_id <> me.id) AS likes_received,
+            (SELECT COUNT(*) FROM follows WHERE followed_id = me.id) AS followers,
     1 + (SELECT COUNT(*) FROM users u WHERE u.reputation > me.reputation) AS rank,
     (SELECT COALESCE(json_agg(json_build_object('code', ua.code, 'earned_at', ua.earned_at, 'featured', ua.featured)), '[]')
-        FROM user_achievements ua WHERE ua.user_id = me.id) AS earned
+        FROM user_achievements ua WHERE ua.user_id = me.id) AS earned,
+    -- progress notifications already sent, so the same one is never sent twice
+    (SELECT COALESCE(array_agg(n.dedupe_key), '{}'::text[]) FROM notifications n
+        WHERE n.user_id = me.id AND n.kind = 'achievement_progress') AS notified
 FROM me, pred, streak
 
 """
@@ -240,7 +243,7 @@ def qualifies(achievement, stats):
     return value >= achievement["threshold"]
 
 # awarding achievements
-def check_achievements(user_id):
+def check_achievements(user_id, notify=True):
     # award anything the user qualifies for and return the achievements and stats
     stats = compute_stats(user_id)
     if not stats:
@@ -261,7 +264,78 @@ def check_achievements(user_id):
         for row in inserted:
             stats["earned"].append({"code": row["code"], "earned_at": row["earned_at"], "featured": False})
         new = [row["code"] for row in inserted]
+        if notify:
+        # one for each achievement just unlocked, plus progress toward the next ones
+            items = [_unlocked_notification(code) for code in new]
+            items += _progress_notifications(stats)
+            notifications.create_many(user_id, items)
     return new, stats
+
+PROGRESS_MILESTONES = (50, 75, 90)  # for targets of PROGRESS_BIG or more
+PROGRESS_BIG = 50
+ALMOST_PERCENT = 80  # for targets of 5 to PROGRESS_BIG - 1
+NO_PROGRESS_TRACKS = {"reputation"}
+
+
+def _fmt(n):
+    return f"{n:,}"
+
+
+def _unlocked_notification(code):
+    a = BY_CODE[code]
+    return {
+        "kind": "achievement_unlocked",
+        "title": f"Achievement unlocked: {a['name']}",
+        "body": f"{a['description']} {a['tier_label']} · +{a['value']} pts",
+        "link": "achievements",
+        "code": code,
+        "key": f"unlocked:{code}",
+    }
+
+
+def _progress_notifications(stats):
+    have = {e["code"] for e in stats["earned"]}
+    already = set(stats.get("notified") or [])
+    items = []
+    seen_tracks = set()
+    for a in CATALOG:  # catalog order = easiest first within each track
+        track = a["track"]
+        if track in seen_tracks or a["code"] in have or a["lower_is_better"] or track in NO_PROGRESS_TRACKS:
+            continue
+        seen_tracks.add(track)  # this is the track's next locked achievement
+        value = stats.get(TRACKS[track]["stat"])
+        target = a["threshold"]
+        if value is None or value <= 0 or value >= target or target < 2:
+            continue
+        progress = f"{_fmt(value)} / {_fmt(target)} {TRACKS[track]['unit']}"
+        if target >= PROGRESS_BIG:
+            crossed = [m for m in PROGRESS_MILESTONES if value * 100 >= m * target]
+            if not crossed:
+                continue
+            key = f"progress:{a['code']}:{crossed[-1]}"
+            title = f"{crossed[-1]}% of the way to {a['name']}"
+        elif target >= 5:
+            if value * 100 < ALMOST_PERCENT * target:
+                continue
+            key = f"progress:{a['code']}:almost"
+            title = f"Almost there: {a['name']}"
+        elif target - value == 1:
+            key = f"progress:{a['code']}:almost"
+            title = f"One more to unlock {a['name']}"
+        else:
+            continue
+        if key in already:
+            continue
+        items.append({
+            "kind": "achievement_progress",
+            "title": title,
+            "body": f"{progress} · {a['tier_label']} · {a['value']} pts",
+            "link": "achievements",
+            "code": a["code"],
+            "key": key,
+        })
+    return items
+
 
 # check users
 # 
@@ -299,7 +373,7 @@ def check_all_users():
     # Backfill: check every user. Run once after deploying (python AchievementBackend.py).
     total = 0
     for row in query("SELECT id FROM users ORDER BY id"):
-        new, _ = check_achievements(row["id"])
+        new, _ = check_achievements(row["id"], notify=False)
         total += len(new)
     return total
  
@@ -432,28 +506,26 @@ def attach_badges(rows, key="username"):
  
 def leaderboard(sort="reputation", limit=100):
    
-    # the top users with reputation, achievement score/count and featured badges
-    # will be ranked by achievement score
-    # the ORDER BY can't be a %s parameter (parameters are values, not SQL), so it's chosen
-    # from two fixed strings. The user's text never goes into the SQL, so this is still safe.
-    order = (
-        "achievement_score DESC, u.reputation DESC"
-        if sort == "achievements"
-        else "u.reputation DESC, achievement_score DESC"
-    )
-    # this is an f-string, so {{}} below becomes {} (an empty array) in the SQL
+   
+    if sort == "achievements":
+        order, rank_by = "achievement_score DESC, reputation DESC", "achievement_score"
+    else:
+        order, rank_by = "reputation DESC, achievement_score DESC", "reputation"
     return query(
         f"""
-        SELECT u.username, u.reputation,
-               COALESCE(SUM(a.value), 0)::int AS achievement_score,
-               COUNT(a.code)::int AS achievement_count,
-               COALESCE(array_agg(ua.code ORDER BY a.value DESC, a.sort_order)
-                        FILTER (WHERE ua.featured), '{{}}'::text[]) AS badges
-        FROM users u
-        LEFT JOIN user_achievements ua ON ua.user_id = u.id
-        LEFT JOIN achievements a ON a.code = ua.code
-        GROUP BY u.id, u.username, u.reputation
-        ORDER BY {order}, u.username
+                SELECT t.*, RANK() OVER (ORDER BY {rank_by} DESC)::int AS rank
+        FROM (
+            SELECT u.username, u.reputation,
+                   COALESCE(SUM(a.value), 0)::int AS achievement_score,
+                   COUNT(a.code)::int AS achievement_count,
+                   COALESCE(array_agg(ua.code ORDER BY a.value DESC, a.sort_order)
+                            FILTER (WHERE ua.featured), '{{}}'::text[]) AS badges
+            FROM users u
+            LEFT JOIN user_achievements ua ON ua.user_id = u.id
+            LEFT JOIN achievements a ON a.code = ua.code
+            GROUP BY u.id, u.username, u.reputation
+        ) t
+        ORDER BY {order}, username
         LIMIT %s
         """,
         (limit,),
