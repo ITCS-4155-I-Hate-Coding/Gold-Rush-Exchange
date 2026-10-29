@@ -135,8 +135,7 @@ CREATE TABLE IF NOT EXISTS user_achievements (
     code TEXT NOT NULL REFERENCES achievements(code) ON DELETE CASCADE,
     earned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     featured BOOLEAN NOT NULL DEFAULT false, -- shown next to user name and we will haev a max of 3 badges showing for the time being
-    seen BOOLEAN NOT NULL DEFAULT false, -- shows the achievement as locked until they earn it
-    PRIMARY KEY (user_id, code)
+    seen BOOLEAN NOT NULL DEFAULT false, -- true wonce the achievement unlocked message has been shown
 );
 
 -- indexing
@@ -155,3 +154,60 @@ CREATE INDEX IF NOT EXISTS idx_predictions_game_id ON predictions(game_id); -- s
 
 
 -- Fixing to one prediction per game because before the page would hide the Predict
+DROP INDEX IF EXISTS uq_predictions_user_game;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM predictions WHERE game_id IS NOT NULL AND result <> 'void'
+        GROUP BY user_id, game_id HAVING COUNT(*) > 1
+    ) THEN
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_predictions_user_game_active
+            ON predictions(user_id, game_id) WHERE game_id IS NOT NULL AND result <> 'void';
+    END IF;
+END $$;
+
+-- Reputation earned from community activity (posts, comments, likes receieved)
+
+CREATE TABLE IF NOT EXISTS rep_events (
+    id BIGSERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- who received the rep
+    kind TEXT NOT NULL CHECK (kind IN ('post', 'comment', 'like_received', 'top_up')),
+    source_key TEXT NOT NULL UNIQUE, -- what it was for, 'post:42' or 'like:comment:9:7'
+    amount INT NOT NULL CHECK (amount > 0),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_rep_events_user_kind_time ON rep_events(user_id, kind, created_at);
+
+-- Adding notifications using a bell indicator (achievement progress, achievement unlocked)
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGSERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL, -- 'achievement_progress' or 'achievement_unlocked'
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    link TEXT, -- where clicking it goes in the page, e.g. 'achievements'
+    code TEXT, -- the achievement it's about (so the page can draw its badge)
+    dedupe_key TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    read_at TIMESTAMPTZ, -- NULL = unread
+    UNIQUE (user_id, dedupe_key)
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_time ON notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id) WHERE read_at IS NULL;
+
+
+-- adding a chat that is private between friends which is two users that follow each other
+CREATE TABLE IF NOT EXISTS messages (
+    id BIGSERIAL PRIMARY KEY, -- also used to fetch "everything newer than the last message I have"
+    sender_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    recipient_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body TEXT NOT NULL CHECK (char_length(body) BETWEEN 1 AND 1000),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    read_at TIMESTAMPTZ, -- NULL until the recipient opens the conversation
+    CHECK (sender_id <> recipient_id)
+);
+-- a conversation is all messages between two people in either direction, newest last
+CREATE INDEX IF NOT EXISTS idx_messages_pair ON messages(sender_id, recipient_id, id);
+-- unread counts for the Messages tab badge
+CREATE INDEX IF NOT EXISTS idx_messages_unread ON messages(recipient_id) WHERE read_at IS NULL;
+
