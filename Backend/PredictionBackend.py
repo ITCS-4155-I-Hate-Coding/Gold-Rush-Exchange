@@ -1,182 +1,135 @@
 from datetime import datetime, timezone
-import json
-from pathlib import Path
-from db import query
+
+import psycopg2
+
+from db import query, transaction
 import AchievementBackend as achievements
+
+# picks on games with no result this many days after the start time get refunded
+VOID_AFTER_DAYS = 5
+
+# how many of everyone's picks the predictions feed shows
+COMMUNITY_LIMIT = 100
 
 
 def create_prediction(user_id, game_id, pick, points):
+    # place a pick. returns (ok, message)
     # reject empty game/prediction text before it gets to the db
-    if not game_id or pick not in ("home", "away") :
+    if not game_id or pick not in ("home", "away"):
         return False, "A game and a pick (home or away) are required."
 
     # points has to be positive
     if points is None or points <= 0:
         return False, "Points wagered must be more than 0"
 
-    
     game = query("SELECT home_team, away_team, status, start_time FROM games WHERE id = %s", (game_id,), fetchone=True)
     if not game:
         return False, "That game does not exist"
 
-    if game["status"] != "scheduled" or game["start_time"] <= datetime.now(timezone.utc): # error here
+    if game["status"] != "scheduled" or game["start_time"] <= datetime.now(timezone.utc):
         return False, "Predictions are closed for this game."
 
     display_game = f"{game['away_team']} @ {game['home_team']}"
     display_pick = game["home_team"] if pick == "home" else game["away_team"]
 
-    # holding the wager points until the game is settled; no need to deduct them from the users reputation yet
-    held = query("UPDATE users SET reputation = reputation - %s WHERE id = %s AND reputation >= %s RETURNING reputation", 
-                 (points, user_id, points),
-                 fetchone=True)
-    if not held:
-        return False, "You do not have enough reputation points to make that prediction."
-
-    # no result column value is given (it will be pending at first)
     try:
-        query("INSERT INTO predictions (user_id, game, prediction_text, points, game_id, pick) VALUES (%s, %s, %s, %s, %s, %s )",
-            (user_id, display_game, f"{display_pick} wins", points, game_id, pick),
-            fetch=False,)
-    except Exception:
-        # if the insert fails, refund the points to the user
-        query("UPDATE users SET reputation = reputation + %s WHERE id = %s", 
-              (points, user_id),
-              fetch=False,)
-        raise
+        # checking for an existing pick, holding the wager and saving the pick all happen together
+        with transaction() as tx:
+            # one pick per game (refunded picks don't count)
+            if tx.query("SELECT 1 FROM predictions WHERE user_id = %s AND game_id = %s AND result <> 'void'",
+                        (user_id, game_id), fetchone=True):
+                return False, "You already made a pick for this game."
+
+            held = tx.query(
+                "UPDATE users SET reputation = reputation - %s WHERE id = %s AND reputation >= %s RETURNING reputation",
+                (points, user_id, points),
+                fetchone=True,
+            )
+            if not held:
+                return False, "You do not have enough reputation points to make that prediction."
+
+            # no result value is given (it will be pending at first)
+            tx.query(
+                "INSERT INTO predictions (user_id, game, prediction_text, points, game_id, pick) VALUES (%s, %s, %s, %s, %s, %s)",
+                (user_id, display_game, f"{display_pick} wins", points, game_id, pick),
+                fetch=False,
+            )
+    except psycopg2.errors.UniqueViolation:
+        return False, "You already made a pick for this game."
     return True, "Prediction created successfully."
 
 
-    # No result column value is given (it will be pending at first)
-    query(
-        "INSERT INTO predictions (user_id, game, prediction_text, points, game_id, pick) VALUES (%s, %s, %s, %s, %s, %s)",
-        (user_id, display_game, f"{display_pick} wins", points, game_id, pick),
-        fetch=False,
-    )
-    return True, "Prediction created successfully."
+def _settle_one(prediction_id, result, payout):
+    # only matches a pick that's still pending, so two syncs at once can't pay the same pick twice
+    with transaction() as tx:
+        row = tx.query(
+            "UPDATE predictions SET result = %s WHERE id = %s AND result = 'pending' RETURNING user_id",
+            (result, prediction_id),
+            fetchone=True,
+        )
+        if not row:
+            return None
+        if payout:
+            tx.query("UPDATE users SET reputation = reputation + %s WHERE id = %s",
+                     (payout, row["user_id"]), fetch=False)
+        return row["user_id"]
 
 
-# Auto settle the predicitons
+# auto settle the predictions
 def auto_settle_finished_games():
     pending = query(
-        "SELECT predictions.id, predictions.user_id, predictions.pick, predictions.points, games.home_score, games.away_score" \
-        " FROM predictions JOIN games on games.id = predictions.game_id WHERE predictions.result = 'pending' AND games.status = 'final'"
+        """
+        SELECT p.id, p.user_id, p.pick, p.points, g.status, g.home_score, g.away_score,
+               g.start_time < now() - make_interval(days => %s) AS stale
+        FROM predictions p
+        JOIN games g ON g.id = p.game_id
+        WHERE p.result = 'pending'
+          AND (g.status IN ('final', 'canceled') OR g.start_time < now() - make_interval(days => %s))
+        """,
+        (VOID_AFTER_DAYS, VOID_AFTER_DAYS),
     )
     settled = 0
+    # remember whose picks were settled so their achievements are checked once each
     settled_users = set()
     for p in pending:
-        if p["home_score"] == p["away_score"]:
-            continue # not guessing on ties
-        actual_winner = "home" if p["home_score"] > p["away_score"] else "away"
-        result = "correct" if p["pick"] == actual_winner else "incorrect"
+        final_with_scores = p["status"] == "final" and p["home_score"] is not None and p["away_score"] is not None
+        if not final_with_scores:
+            if p["status"] == "canceled" or p["stale"]:
+                result, payout = "void", p["points"]  # refund the wager
+            else:
+                continue  # final but no scores yet: wait for the next sync
+        elif p["home_score"] == p["away_score"]:
+            result, payout = "void", p["points"]  # ties are refunded instead of waiting forever
+        else:
+            actual_winner = "home" if p["home_score"] > p["away_score"] else "away"
+            if p["pick"] == actual_winner:
+                # the wager was already deducted when placed: a win returns it plus winnings (2x)
+                result, payout = "correct", p["points"] * 2
+            else:
+                result, payout = "incorrect", 0
 
-        # the wager was already deducted when placed: a win returns it plus winnings (2x), a loss pays nothing more
-        payout = p["points"] * 2 if result == "correct" else 0
-        query("UPDATE predictions SET result = %s WHERE id = %s",
-              (result, p["id"]),
-              fetch=False,)
-        if payout:
-            query("UPDATE users SET reputation = reputation + %s WHERE id = %s",
-                  (payout, p["user_id"]),
-                  fetch=False,)
-        settled += 1
-        settled_users.add(p["user_id"])
+        uid = _settle_one(p["id"], result, payout)
+        if uid:
+            settled += 1
+            settled_users.add(uid)
+
     achievements.try_check(*settled_users)
     return settled
 
 
-
-# if user_id is given, then only return that users predictions
-# for now in order to test it will return everyones predictions 
-def view_predictions(user_id=None):
-
-    if user_id is not None:
-        return query(
-            "SELECT * FROM predictions WHERE user_id = %s ORDER BY created_at DESC",
-            (user_id,),
-        )
-    return query("SELECT * FROM predictions ORDER BY created_at DESC")
-
-# mark a pending prediction as win or loss by comparing prediction_text to the actual outcome
-def settle_prediction(prediction_id, actual_outcome):
-    # pull who owns it, what they predicted, how many points wagered, and if it has been settled
-    prediction = query(
-        "SELECT user_id, prediction_text, points, result FROM predictions WHERE id = %s",
-        (prediction_id,),
-        fetchone=True,
-    
+def view_feed(user_id=None, limit=COMMUNITY_LIMIT):
+    return query(
+        """
+        SELECT predictions.*, users.username
+        FROM predictions JOIN users ON users.id = predictions.user_id
+        WHERE predictions.user_id = %s
+           OR predictions.id IN (SELECT id FROM predictions ORDER BY created_at DESC LIMIT %s)
+        ORDER BY predictions.created_at DESC
+        """,
+        (user_id, limit),
     )
-    if not prediction:
-        return False, "Prediction not found."
-
-    # preventing settling the same prediction twice
-    if prediction["result"] != "pending":
-        return False, f"Prediction was already settled as {prediction['result']}."
-
-    # adjusting prediction_text to be in a more universal format
-    is_correct = prediction["prediction_text"].strip().lower() == actual_outcome.strip().lower()
-    result = "correct" if is_correct else "incorrect"
-
-    # the wager was already deducted when placed: a correct guess gets it back plus winnings, a wrong guess gets nothing
-    reputation_change = prediction["points"] * 2 if is_correct else 0
-
-    # updating the db to lock in the predictions result and another to pay out winners
-    query(
-        "UPDATE predictions SET result = %s WHERE id = %s",
-        (result, prediction_id),
-        fetch=False
-    )
-    if reputation_change:
-        query(
-            "UPDATE users SET reputation = reputation + %s WHERE id = %s",
-            (reputation_change, prediction["user_id"]),
-            fetch=False
-        )
-
-    # net change compared to before the wager was placed
-    net = prediction["points"] if is_correct else -prediction["points"]
-
-
-    # confirmation message
-    sign = "+" if net >= 0 else ""
-    return True, f"Prediction marked as {result} ({sign}{net} reputation)."
 
 
 if __name__ == "__main__":
-    print("Gold-Rush-Exchange Prediction System")
-    print("------------------------------------")
-
-    while True:
-        print("\n1. Make Prediction")
-        print("2. View Predictions")
-        print("3. Exit")
-
-        choice = input("Choose an option: ")
-
-        if choice == "1":
-            username = input("Username: ")
-            game = input("Game/Event: ")
-            prediction = input("Your Prediction: ")
-
-            try:
-                points = int(input("Reputation Points: "))
-                if points <= 0:
-                    print("Points must be greater than 0.")
-                    continue
-            except ValueError:
-                print("Please enter a valid number of points.")
-                continue
-
-            success, message = create_prediction(
-                username, game, prediction, points
-            )
-            print(message)
-
-        elif choice == "2":
-            view_predictions()
-
-        elif choice == "3":
-            print("Goodbye!")
-            break
-
-        else:
-            print("Invalid option.")
+    # settle anything that's ready, without starting the web server
+    print(f"Settled {auto_settle_finished_games()} predictions")
