@@ -1,4 +1,5 @@
 from db import query
+import RepBackend as rep
 
 # how many recent actions to show on a profile
 RECENT_LIMIT = 20
@@ -22,6 +23,7 @@ def get_profile(user_id, recent_limit=RECENT_LIMIT, viewer_id=None):
             COUNT(*) FILTER (WHERE result = 'correct')   AS correct,
             COUNT(*) FILTER (WHERE result = 'incorrect') AS incorrect,
             COUNT(*) FILTER (WHERE result = 'pending')   AS pending,
+            COUNT(*) FILTER (WHERE result = 'void')      AS void,  -- refunded picks (ties, cancelled games)
             COALESCE(SUM(points) FILTER (WHERE result = 'correct'), 0)   AS rep_gained,
             COALESCE(SUM(points) FILTER (WHERE result = 'incorrect'), 0) AS rep_lost
         FROM predictions
@@ -37,13 +39,15 @@ def get_profile(user_id, recent_limit=RECENT_LIMIT, viewer_id=None):
         SELECT
             (SELECT COUNT(*) FROM follows WHERE followed_id = %s) AS followers,
             (SELECT COUNT(*) FROM follows WHERE follower_id = %s) AS following,
-            EXISTS(SELECT 1 FROM follows WHERE follower_id = %s AND followed_id = %s) AS is_following
+            EXISTS(SELECT 1 FROM follows WHERE follower_id = %s AND followed_id = %s) AS is_following,
+            EXISTS(SELECT 1 FROM follows WHERE follower_id = %s AND followed_id = %s) AS follows_me
         """,
-        (user_id, user_id, viewer_id, user_id),
+        (user_id, user_id, viewer_id, user_id, user_id, viewer_id),
         fetchone=True,
     )
 
     # accuracy only counts settled predictions, pending ones haven't been decided yet
+    # (void picks were refunded, so they count as neither right nor wrong)
     settled = stats["correct"] + stats["incorrect"]
     accuracy = round(stats["correct"] * 100 / settled, 1) if settled else None
 
@@ -71,16 +75,19 @@ def get_profile(user_id, recent_limit=RECENT_LIMIT, viewer_id=None):
         "id": user["id"],
         "username": user["username"],
         "reputation": user["reputation"],
+        "rep_community": rep.community_rep(user_id),  # earned from posts, comments and likes
         "member_since": user["created_at"],
         "followers": follow["followers"],
         "following": follow["following"],
         "is_following": follow["is_following"],
+        "is_friend": bool(follow["is_following"] and follow["follows_me"]),
         "is_me": viewer_id == user["id"],
         "predictions": {
             "total": stats["total"],
             "correct": stats["correct"],
             "incorrect": stats["incorrect"],
             "pending": stats["pending"],
+            "void": stats["void"],
             "settled": settled,
             "accuracy": accuracy,  # percent, or None when nothing has been settled yet
             "rep_gained": stats["rep_gained"],
