@@ -3,19 +3,29 @@
 - Login uses charlotte email address and not the username (username is still stored and used for display)
 """
 
-import json
-import hashlib
 import re
+import threading
+import time
+
 import bcrypt
-from pathlib import Path
 from db import query
 
 # matching emails in order to fit the charlotte.edu requirement
 EMAIL_PATTERN = re.compile(r"[A-Za-z0-9._%+-]+@charlotte\.edu$")
 
+USERNAME_PATTERN = re.compile(r"[A-Za-z0-9_.]{3,20}")
 
+PASSWORD_MIN = 8
+PASSWORD_MAX_BYTES = 72
 
+LOGIN_MAX_FAILURES = 8
+LOGIN_WINDOW = 15 * 60
+_failures = {}  # email -> list of failure times
+_failures_lock = threading.Lock()
 
+LOGIN_FAILED = "Invalid email or password."
+
+_DUMMY_HASH = bcrypt.hashpw(b"not-a-real-password", bcrypt.gensalt())
 
 
 def valid_charlotte_email(email):
@@ -24,27 +34,34 @@ def valid_charlotte_email(email):
     the email or "" part prevents null values like an empty field being passed in
     """
     return bool(EMAIL_PATTERN.fullmatch(email or ""))
-    
-    # return bool(re.fullmatch(r"[A-Za-z0-9._%+-]+@charlotte\.edu", email))
 
-"""Create a new account and save it to users data.json."""
+
+def valid_username(username):
+    return bool(USERNAME_PATTERN.fullmatch(username or ""))
+
+
 def create_account(username, email, password):
-    
+    # create a new account. returns (ok, message)
+    username = (username or "").strip()
+    email = (email or "").strip()
+
     if not username or not email or not password:
         return False, "All fields are required."
+    if not valid_username(username):
+        return False, "Usernames are 3-20 characters: letters, numbers, _ and . only."
     # rejecting anything that isnt a charlotte.edu email
     if not valid_charlotte_email(email):
         return False, "Email must end with @charlotte.edu."
+    if len(password) < PASSWORD_MIN:
+        return False, f"Passwords must be at least {PASSWORD_MIN} characters."
+    if len(password.encode("utf-8")) > PASSWORD_MAX_BYTES:
+        return False, "That password is too long (72 characters at most)."
 
-    # data = load_users()
-
-    # check database for username OR email that is already taken (both are unique in schema.sql
     existing = query(
-        "SELECT id FROM users WHERE username = %s OR email = %s",
-        (username, email.lower()), # store and compare email in lowercase
-        fetchone=True
+        "SELECT id FROM users WHERE lower(username) = lower(%s) OR email = %s",
+        (username, email.lower()),  # store and compare email in lowercase
+        fetchone=True,
     )
-
     if existing:
         return False, "An account with that username or email already exists."
 
@@ -54,46 +71,64 @@ def create_account(username, email, password):
     query(
         "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)",
         (username, email.lower(), password_hash),
-        fetch=False # INSERT doesnt need to return any rows
+        fetch=False,  # INSERT doesnt need to return any rows
     )
     return True, "Account created successfully"
 
 
-"""Check the email and password against users data.json."""
-# this login function will be used for testing for now
 def login(email, password):
+    # wrapper used by the terminal test menu at the bottom of this file
     success, message, _ = login_and_get_user(email, password)
     return success, message
 
-"""
-- Will be used by Flask eventually
-- Loggin in is by email but the session will store the username
-"""
+
+def _too_many_failures(email):
+    now = time.time()
+    with _failures_lock:
+        recent = [t for t in _failures.get(email, []) if now - t < LOGIN_WINDOW]
+        _failures[email] = recent
+        return len(recent) >= LOGIN_MAX_FAILURES
+
+
+def _record_failure(email):
+    with _failures_lock:
+        _failures.setdefault(email, []).append(time.time())
+
+
 def login_and_get_user(email, password):
+    # check an email and password. returns (ok, message, {"id", "username"} or None)
+    email = (email or "").strip().lower()
+    password = password or ""
+
+    if _too_many_failures(email):
+        return False, "Too many failed attempts. Try again in 15 minutes.", None
+
     # look up account by email
     user = query(
-            "SELECT id, username, password_hash FROM users WHERE email = %s",
-            (email.lower(),),
-            fetchone=True
-        )
-    if not user:
-        return False, "Invalid email or password", None
+        "SELECT id, username, password_hash FROM users WHERE email = %s",
+        (email,),
+        fetchone=True,
+    )
+    stored = user["password_hash"].encode("utf-8") if user else _DUMMY_HASH
+    # bcrypt.checkpw re-hashes the typed password and compares it.
+    # (the length check avoids bcrypt errors on absurdly long input)
+    ok = len(password.encode("utf-8")) <= PASSWORD_MAX_BYTES and bcrypt.checkpw(password.encode("utf-8"), stored)
+    if not user or not ok:
+        _record_failure(email)
+        return False, LOGIN_FAILED, None
 
-    # bcrypt.checkpw will re-hash the typed password then compares it
-    if not bcrypt.checkpw(password.encode("utf-8"), user["password_hash"].encode("utf-8")):
-        return False, "Invalid email or password.", None 
-
-    # Success -> hand back the id and username so the app.py can eventually use to set the session
+    with _failures_lock:
+        _failures.pop(email, None)  # a successful login clears the count
     return True, "Login successful.", {"id": user["id"], "username": user["username"]}
-        
+
 
 def get_user_reputation(user_id):
-    # calling each time the dashboard will load to the reputation shown is current
+    # read fresh each time /api/me is called so the balance shown is current
     row = query("SELECT reputation FROM users WHERE id = %s", (user_id,), fetchone=True)
     return row["reputation"] if row else None
- 
 
-# content below runs when executing this file directly, not when app.py uses it
+
+# content below runs when executing this file directly, not when App.py uses it
 # for testing for now
 if __name__ == "__main__":
     print("Gold-Rush-Exchange Login System")
