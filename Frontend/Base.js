@@ -106,11 +106,11 @@ const BADGE_GLYPHS = {
 // so players can tell how rare a badge is at a glance. Legendary uses the site's gold.
 // The same colours are repeated as .tier-* classes in Base.css for text and borders.
 const TIER_COLORS = {
-  bronze: ["#c3cfca", "#66776f"],
-  silver: ["#5ce6a8", "#0e7f4f"],
-  gold: ["#7cc0ff", "#1d58b8"],
-  platinum: ["#d3a6ff", "#6a36c2"],
-  diamond: ["#ffe9a6", "#b8862a"]
+  bronze: ["#f2b27a", "#8a4b1f"],
+  silver: ["#f1f4f7", "#7d8893"],
+  gold: ["#fff0a8", "#c08a1a"],
+  platinum: ["#ffffff", "#a9b6c2"],
+  diamond: ["#e6f9ff", "#2f9fd8"]
 };
 
 // gradients are defined once in a hidden <svg> so every badge can reference them by id
@@ -447,6 +447,7 @@ const TABS = [
   "predictions",
   "leaderboard",
   "following",
+  "messages", // new tab
   "compare",
   "profile"
 ];
@@ -455,7 +456,12 @@ function showTab(name) {
   document
     .querySelectorAll(".tab")
     .forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
+  const home = name === "home";
+  if ($("landing")) $("landing").hidden = !home;
+  document.querySelector("main").hidden = home;
   TABS.forEach((t) => ($(t).hidden = t !== name));
+  if (name !== "messages") stopChatPolling(); // stop checking for new messages off the tab
+  if (home) window.scrollTo(0, 0);
 }
 
 document.querySelectorAll(".tab").forEach((btn) =>
@@ -464,6 +470,7 @@ document.querySelectorAll(".tab").forEach((btn) =>
     if (btn.dataset.tab === "following") return openFollowing();
     if (btn.dataset.tab === "leaderboard") return openLeaderboard();
     if (btn.dataset.tab === "compare") return openCompare();
+    if (btn.dataset.tab === "messages") return openMessages();
     showTab(btn.dataset.tab);
   })
 );
@@ -478,9 +485,14 @@ document.addEventListener("click", (e) => {
 function renderHeader() {
   $("authBtn").textContent = me ? "Log out" : "Log in";
   $("userLabel").hidden = $("repBadge").hidden = !me;
+  $("notifBtn").hidden = !me; // the bell
   if (me) {
     $("userLabel").innerHTML = esc(me.username) + badgeRow(me.badges, 16);
     $("repBadge").textContent = `${me.reputation} rep`;
+    setCounts(me.unread_notifications, me.unread_messages);
+  } else {
+    setCounts(0, 0);
+    closeNotifPanel();
   }
 }
 
@@ -489,6 +501,11 @@ async function loadMe() {
   me = await api("/api/me").catch(() => null);
   renderHeader();
   if (me) showUnlocks(me.new_achievements);
+  // the bankruptcy floor topped the balance back up
+  if (me && me.top_up)
+    showSuccessMessage(
+      `You were topped back up to ${me.reputation} rep. Make it count!`
+    );
   return me;
 }
 
@@ -500,6 +517,10 @@ async function refresh() {
   $("followingTab").hidden = !me;
   if (!me && !$("following").hidden) showTab("posts"); // logged out while on Following
   $("compareTab").hidden = !me;
+  $("messagesTab").hidden = !me;
+  if (!me && !$("messages").hidden) showTab("posts"); // logged out while on Messages
+  if (me) startSummaryPolling();
+  else stopSummaryPolling();
   if (!me) compareSel = [];
   if (!me && !$("compare").hidden) showTab("posts"); // logged out while on Compare
   if (!me) {
@@ -674,8 +695,12 @@ async function loadComments(postId) {
 $("postForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   try {
-    await api("/api/posts", "POST", { content: $("postBody").value });
+    const res = await api("/api/posts", "POST", {
+      content: $("postBody").value
+    });
     e.target.reset();
+    // say what the post earned ("+5 rep") or why it didn't (daily limit, too short)
+    showSuccessMessage(res.rep_note ? `Posted · ${res.rep_note}` : "Posted");
     loadPosts();
     loadMe();
   } catch (err) {
@@ -688,10 +713,11 @@ $("postList").addEventListener("submit", async (e) => {
   const postId = e.target.closest("[data-post]").dataset.post;
   const input = e.target.querySelector("input");
   try {
-    await api(`/api/posts/${postId}/comments`, "POST", {
+    const res = await api(`/api/posts/${postId}/comments`, "POST", {
       content: input.value
     });
     input.value = "";
+    if (res.rep_note) showSuccessMessage(`Commented · ${res.rep_note}`);
     loadComments(postId);
     loadMe();
   } catch (err) {
@@ -723,7 +749,8 @@ async function loadPredictions() {
     allPreds = await api("/api/predictions");
     myPicks.clear();
     for (const p of allPreds)
-      if (me && p.user_id === me.id && p.game_id)
+      // (refunded 'void' picks don't count: that game can be picked again)
+      if (me && p.user_id === me.id && p.game_id && p.result !== "void")
         myPicks.set(p.game_id, p.prediction_text.replace(/ wins$/, ""));
     renderPredictions();
     renderGames(); // tiles show your picks
@@ -748,14 +775,8 @@ function renderPredictions() {
       </div>
       <div class="pred-row">
         <span class="pick">${esc(p.prediction_text)}</span>
-        <span class="wager">${p.points} rep wagered${
-          p.result === "correct"
-            ? ` · <b class="w">+${p.points}</b>`
-            : p.result === "incorrect"
-              ? ` · <b class="l">−${p.points}</b>`
-              : ""
-        }</span>
-        <span class="result ${esc(p.result)}">${esc(p.result)}</span>
+        <span class="wager">${wagerText(p)}</span>
+        <span class="result ${esc(p.result)}">${esc(resultLabel(p.result))}</span>
       </div>
     </article>
   `
@@ -773,6 +794,18 @@ $("predView").addEventListener("click", (e) => {
     .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
   renderPredictions();
 });
+
+const resultLabel = (r) => (r === "void" ? "refunded" : r);
+function wagerText(p) {
+  if (p.result === "void") return `${p.points} rep refunded`;
+  const money =
+    p.result === "correct"
+      ? ` · <b class="w">+${p.points}</b>`
+      : p.result === "incorrect"
+        ? ` · <b class="l">−${p.points}</b>`
+        : "";
+  return `${p.points} rep wagered${money}`;
+}
 
 // Dialog for predictions
 let predGame = null;
@@ -1043,7 +1076,9 @@ $("syncGamesBtn").addEventListener("click", async () => {
   try {
     const result = await api("/api/games/sync", "POST");
     await refresh(); // refresh games, predictions, and posts; pulls from api again
-    btn.textContent = `Synced (${result.predictions_settled} settled)`;
+    btn.textContent = result.in_progress
+      ? "Sync already running…"
+      : `Synced (${result.predictions_settled} settled)`;
   } catch (err) {
     alert(`Couldn't sync games: ${err.message}`);
     btn.textContent = originalText;
@@ -1130,6 +1165,11 @@ function renderProfile(p, picks, ach) {
            data-follow="${esc(p.username)}" data-following="${p.is_following ? 1 : 0}">
            ${p.is_following ? "Unfollow" : "Follow"}</button>`
       : "";
+  // friends (following each other) get a Message button on each other's profiles
+  const messageBtn =
+    me && !p.is_me && p.is_friend
+      ? `<button type="button" class="btn btn-gold" data-message="${esc(p.username)}">Message</button>`
+      : "";
   const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
   return `
@@ -1138,17 +1178,16 @@ function renderProfile(p, picks, ach) {
         <h2>${esc(p.username)}${badgeRow(p.badges, 28)}</h2>
         <div class="meta">Member since ${when(p.member_since)} · ${plural(p.followers, "follower")} · ${p.following} following</div>
       </div>
-      ${followBtn}
+      <div class="row">${messageBtn}${followBtn}</div>
     </article>
     <div class="stats">
-      ${stat(p.reputation, "Reputation")}
+      ${stat(p.reputation, "Reputation", p.rep_community ? `+${p.rep_community} from posts, comments and likes` : "")}
       ${stat(accuracy, "Prediction accuracy", accuracyNote)}
       ${stat(`${s.correct}–${s.incorrect}`, "Record (W–L)", `${s.pending} pending · ${s.total} total`)}
       ${stat(`+${s.rep_gained}`, "Rep won", `−${s.rep_lost} lost on incorrect picks`)}
     </div>
     ${picks ? renderPicks(picks) : '<p class="error">Couldn\'t load predictions.</p>'}
-    ${renderAchievements(ach, p.is_me)}
-    <h3 class="section-title">Recent activity</h3>
+    <section class="ach">${renderAchievements(ach, p.is_me)}</section>    <h3 class="section-title">Recent activity</h3>
     <div class="activity">${activity}</div>`;
 }
 
@@ -1178,12 +1217,8 @@ function pickCard(p) {
   ) {
     note = `Final: ${p.away_team} ${p.away_score} – ${p.home_team} ${p.home_score}`;
   }
-  const money =
-    p.result === "correct"
-      ? ` · <b class="w">+${p.points}</b>`
-      : p.result === "incorrect"
-        ? ` · <b class="l">−${p.points}</b>`
-        : "";
+  if (p.result === "void")
+    note = "Refunded: the game was tied, cancelled or never finished";
   return `
     <article class="pcard ${esc(p.result)}">
       <div>
@@ -1192,8 +1227,8 @@ function pickCard(p) {
       </div>
       <div class="pred-row">
         <span class="pick">${esc(p.prediction_text)}</span>
-        <span class="wager">${p.points} rep wagered${money}</span>
-        <span class="result ${esc(p.result)}">${esc(p.result)}</span>
+        <span class="wager">${wagerText(p)}</span>
+        <span class="result ${esc(p.result)}">${esc(resultLabel(p.result))}</span>
       </div>
     </article>`;
 }
@@ -1225,8 +1260,8 @@ function renderActivity(a) {
       ? `<strong>${esc(a.title)}</strong>
          <div class="pred-row">
            <span class="pick">${esc(a.body)}</span>
-           <span>${a.points} pts wagered</span>
-           <span class="result ${esc(a.result)}">${esc(a.result)}</span>
+           <span>${a.result === "void" ? `${a.points} rep refunded` : `${a.points} rep wagered`}</span>
+           <span class="result ${esc(a.result)}">${esc(resultLabel(a.result))}</span>
          </div>`
       : `<p class="post-text">${esc(a.body)}</p>`;
   return `
@@ -1441,6 +1476,9 @@ async function loadLeaderboard() {
         ? ["achievement_score", "reputation"]
         : ["reputation", "achievement_score"];
     rows.sort((a, b) => b[k1] - a[k1] || b[k2] - a[k2]);
+    rows.forEach((r, i) => {
+      r.rank = i > 0 && rows[i - 1][k1] === r[k1] ? rows[i - 1].rank : i + 1;
+    });
     renderLeaderboard(rows);
   } catch (err) {
     list.innerHTML = `<p class="error">Couldn't load leaderboard: ${esc(err.message)}</p>`;
@@ -1462,7 +1500,7 @@ function renderLeaderboard(rows) {
     .map(
       (u, i) => `
     <div class="lb-row ${me && u.username === me.username ? "lb-me" : ""}">
-      <span class="lb-rank">${i + 1}</span>
+      <span class="lb-rank">${u.rank ?? i + 1}</span>
       <span class="avatar" aria-hidden="true">${initial(u.username)}</span>
       <span class="lb-who">${userLink(u.username, u.badges)}</span>
       ${
@@ -1650,5 +1688,387 @@ function renderCompare(rows) {
     ${rows.length === 1 ? '<p class="hint">Pick friends above to see them side by side with you.</p>' : ""}`;
 }
 
-refresh();
+const SUMMARY_EVERY_MS = 20000;
+let summaryTimer = null;
+let lastUnreadMessages = 0;
+
+function setCounts(notifs, msgs) {
+  const n = $("notifCount");
+  n.textContent = notifs > 99 ? "99+" : String(notifs || 0);
+  n.hidden = !notifs;
+  $("notifBtn").setAttribute(
+    "aria-label",
+    notifs ? `Notifications, ${notifs} unread` : "Notifications"
+  );
+  const m = $("msgCount");
+  m.textContent = msgs > 99 ? "99+" : String(msgs || 0);
+  m.hidden = !msgs;
+  if (msgs > lastUnreadMessages && !$("messages").hidden) loadConversations();
+  lastUnreadMessages = msgs || 0;
+}
+
+async function pollSummary() {
+  if (!me || document.visibilityState !== "visible") return; // don't poll from a hidden tab
+  try {
+    const s = await api("/api/notifications/summary");
+    setCounts(s.unread_notifications, s.unread_messages);
+  } catch {
+    /* a missed poll is fine; the next one will catch up */
+  }
+}
+
+function startSummaryPolling() {
+  if (!summaryTimer) summaryTimer = setInterval(pollSummary, SUMMARY_EVERY_MS);
+}
+function stopSummaryPolling() {
+  clearInterval(summaryTimer);
+  summaryTimer = null;
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") pollSummary();
+});
+
+function closeNotifPanel() {
+  $("notifPanel").hidden = true;
+  $("notifBtn").setAttribute("aria-expanded", "false");
+}
+
+async function openNotifPanel() {
+  const panel = $("notifPanel");
+  panel.hidden = false;
+  $("notifBtn").setAttribute("aria-expanded", "true");
+  $("notifList").innerHTML = '<p class="hint">Loading…</p>';
+  try {
+    const data = await api("/api/notifications");
+    renderNotifications(data.notifications);
+    setCounts(data.unread, lastUnreadMessages);
+  } catch (err) {
+    $("notifList").innerHTML =
+      `<p class="error">Couldn't load notifications: ${esc(err.message)}</p>`;
+  }
+}
+
+// "3 min ago", "2 h ago", or a date for anything older than a week
+function ago(d) {
+  const s = Math.max(0, (Date.now() - new Date(d).getTime()) / 1000);
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  if (s < 604800) return `${Math.floor(s / 86400)} d ago`;
+  return when(d);
+}
+
+function renderNotifications(items) {
+  $("notifList").innerHTML = items.length
+    ? items
+        .map(
+          (n) => `
+      <button type="button" class="notif ${n.read ? "" : "unread"}" data-notif="${n.id}" data-link="${esc(n.link || "")}">
+        <span class="notif-icon">${n.code ? badgeSvg(n.code, 34, n.kind === "achievement_progress") : ""}</span>
+        <span class="notif-text">
+          <span class="notif-title">${esc(n.title)}</span>
+          <span class="notif-body">${esc(n.body)}</span>
+          <span class="notif-time">${ago(n.created_at)}</span>
+        </span>
+      </button>`
+        )
+        .join("")
+    : '<p class="hint notif-empty">Nothing yet. Progress toward achievements and new unlocks show up here.</p>';
+}
+
+$("notifBtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  $("notifPanel").hidden ? openNotifPanel() : closeNotifPanel();
+});
+// clicking anywhere else, or pressing Escape, closes the panel
+document.addEventListener("click", (e) => {
+  if (!$("notifPanel").hidden && !e.target.closest("#notifPanel"))
+    closeNotifPanel();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("notifPanel").hidden) {
+    closeNotifPanel();
+    $("notifBtn").focus();
+  }
+});
+
+$("notifReadAll").addEventListener("click", async () => {
+  try {
+    await api("/api/notifications/read", "POST", {});
+    document
+      .querySelectorAll(".notif.unread")
+      .forEach((n) => n.classList.remove("unread"));
+    setCounts(0, lastUnreadMessages);
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+$("notifList").addEventListener("click", async (e) => {
+  const item = e.target.closest("[data-notif]");
+  if (!item) return;
+  closeNotifPanel();
+  if (item.classList.contains("unread")) {
+    api("/api/notifications/read", "POST", {
+      ids: [Number(item.dataset.notif)]
+    })
+      .then(pollSummary)
+      .catch(() => {});
+  }
+  if (item.dataset.link === "achievements") openProfile(null, "achievements");
+});
+
+const CHAT_EVERY_MS = 4000;
+const MESSAGE_MAX = 1000;
+let chatWith = null; // username of the open conversation
+let chatLastId = 0;
+let chatFirstId = null; // id of the oldest message shown ("Load earlier messages")
+let chatTimer = null;
+let chatConversations = [];
+
+async function openMessages(username) {
+  showTab("messages");
+  await loadConversations();
+  if (username) openChat(username);
+  else if (!chatWith) renderChatEmpty();
+}
+
+async function loadConversations() {
+  try {
+    chatConversations = await api("/api/messages");
+    renderConversations();
+  } catch (err) {
+    $("chatList").innerHTML =
+      `<p class="error">Couldn't load conversations: ${esc(err.message)}</p>`;
+  }
+}
+
+function renderConversations() {
+  const box = $("chatList");
+  if (!chatConversations.length) {
+    box.innerHTML = `<p class="hint chat-none">No friends to message yet. You can message people who follow you back: find people on the Following tab.</p>`;
+    return;
+  }
+  box.innerHTML = chatConversations
+    .map((c) => {
+      const preview = c.last_body
+        ? `${c.last_from_me ? "You: " : ""}${esc(c.last_body)}`
+        : '<span class="hint">Say hello</span>';
+      return `
+      <button type="button" class="convo ${c.username === chatWith ? "active" : ""} ${c.unread ? "has-unread" : ""}" data-chat="${esc(c.username)}">
+        <span class="avatar" aria-hidden="true">${initial(c.username)}</span>
+        <span class="convo-text">
+          <span class="convo-name">${esc(c.username)}${badgeRow(c.badges, 14)}${c.is_friend ? "" : ' <span class="convo-tag">not friends</span>'}</span>
+          <span class="convo-preview">${preview}</span>
+        </span>
+        <span class="convo-side">
+          ${c.last_at ? `<span class="convo-time">${ago(c.last_at)}</span>` : ""}
+          ${c.unread ? `<span class="convo-unread" aria-label="${c.unread} unread">${c.unread}</span>` : ""}
+        </span>
+      </button>`;
+    })
+    .join("");
+}
+
+function renderChatEmpty() {
+  $("chat").classList.remove("open");
+  $("chatMain").innerHTML =
+    `<div class="chat-empty"><p>Pick a friend to start chatting.</p><p class="hint">Friends are people who follow you and whom you follow back.</p></div>`;
+}
+
+$("chatList").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-chat]");
+  if (b) openChat(b.dataset.chat);
+});
+
+// any "Message" button (on a friend's profile) opens that conversation
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-message]");
+  if (b) openMessages(b.dataset.message);
+});
+
+function messageHtml(m) {
+  const t = new Date(m.created_at);
+  return `
+    <div class="msg ${m.from_me ? "mine" : "theirs"}" data-id="${m.id}">
+      <div class="msg-bubble">${esc(m.body)}</div>
+      <div class="msg-time" title="${esc(t.toLocaleString())}">${t.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div>
+    </div>`;
+}
+
+async function openChat(username) {
+  chatWith = username;
+  chatLastId = 0;
+  chatFirstId = null;
+  stopChatPolling();
+  $("chat").classList.add("open"); // on phones: show the conversation instead of the list
+  renderConversations();
+  const main = $("chatMain");
+  main.innerHTML = '<p class="hint chat-loading">Loading…</p>';
+  try {
+    const data = await api(`/api/messages/${encodeURIComponent(username)}`);
+    if (chatWith !== username) return; // another conversation was opened meanwhile
+    main.innerHTML = `
+      <div class="chat-head">
+        <button type="button" class="btn btn-link chat-back" id="chatBack" aria-label="Back to conversations">‹ Back</button>
+        <span class="avatar" aria-hidden="true">${initial(username)}</span>
+        ${userLink(username)}
+      </div>
+      <div class="chat-msgs" id="chatMsgs" aria-live="polite">
+        ${data.has_more ? '<button type="button" class="btn btn-link chat-more" id="chatMore">Load earlier messages</button>' : ""}
+        ${data.messages.length ? data.messages.map(messageHtml).join("") : '<p class="hint chat-start">No messages yet. Say hello!</p>'}
+      </div>
+      ${
+        data.can_send
+          ? `<form class="chat-form" id="chatForm">
+               <textarea id="chatInput" rows="1" maxlength="${MESSAGE_MAX}" placeholder="Message ${esc(username)}" aria-label="Message"></textarea>
+               <button class="btn" id="chatSend">Send</button>
+               <span class="chat-count" id="chatCount" hidden></span>
+             </form>
+             <p class="error chat-error" id="chatError" role="alert" hidden></p>`
+          : `<p class="hint chat-locked">You can message each other again when you both follow each other.</p>`
+      }`;
+    if (data.messages.length) {
+      chatFirstId = data.messages[0].id;
+      chatLastId = data.messages[data.messages.length - 1].id;
+    }
+    scrollChatToEnd();
+    $("chatInput")?.focus();
+    startChatPolling();
+    pollSummary();
+    loadConversations();
+  } catch (err) {
+    main.innerHTML = `<p class="error">${esc(err.message)}</p>`;
+  }
+}
+
+function scrollChatToEnd() {
+  const box = $("chatMsgs");
+  if (box) box.scrollTop = box.scrollHeight;
+}
+
+function appendMessages(list) {
+  const box = $("chatMsgs");
+  if (!box || !list.length) return;
+  box.querySelector(".chat-start")?.remove();
+  const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  for (const m of list) {
+    if (box.querySelector(`[data-id="${m.id}"]`)) continue; // already shown
+    box.insertAdjacentHTML("beforeend", messageHtml(m));
+    chatLastId = Math.max(chatLastId, m.id);
+    if (chatFirstId === null) chatFirstId = m.id;
+  }
+  if (atEnd || list.some((m) => m.from_me)) scrollChatToEnd();
+}
+
+async function pollChat() {
+  if (!chatWith || document.visibilityState !== "visible") return;
+  const who = chatWith;
+  try {
+    const data = await api(
+      `/api/messages/${encodeURIComponent(who)}?after=${chatLastId}`
+    );
+    if (who === chatWith && data.messages.length) {
+      appendMessages(data.messages);
+      loadConversations();
+    }
+  } catch {
+    /* try again next time */
+  }
+}
+
+function startChatPolling() {
+  stopChatPolling();
+  chatTimer = setInterval(pollChat, CHAT_EVERY_MS);
+}
+function stopChatPolling() {
+  clearInterval(chatTimer);
+  chatTimer = null;
+}
+
+async function sendChat() {
+  const input = $("chatInput");
+  const body = input.value.trim();
+  if (!body) return;
+  const err = $("chatError");
+  err.hidden = true;
+  $("chatSend").disabled = true;
+  try {
+    const res = await api(
+      `/api/messages/${encodeURIComponent(chatWith)}`,
+      "POST",
+      { body }
+    );
+    input.value = "";
+    autosize(input);
+    updateChatCount();
+    appendMessages([res.sent]);
+    loadConversations();
+  } catch (e) {
+    err.textContent = e.message;
+    err.hidden = false;
+  } finally {
+    $("chatSend").disabled = false;
+    input.focus();
+  }
+}
+
+// the message box grows with its text up to a few lines
+function autosize(t) {
+  t.style.height = "auto";
+  t.style.height = Math.min(t.scrollHeight, 140) + "px";
+}
+function updateChatCount() {
+  const left = MESSAGE_MAX - $("chatInput").value.length;
+  const c = $("chatCount");
+  c.hidden = left > 100;
+  c.textContent = `${left} left`;
+}
+
+$("chatMain").addEventListener("submit", (e) => {
+  e.preventDefault();
+  sendChat();
+});
+// enter sends, Shift+Enter starts a new line
+$("chatMain").addEventListener("keydown", (e) => {
+  if (e.target.id === "chatInput" && e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendChat();
+  }
+});
+$("chatMain").addEventListener("input", (e) => {
+  if (e.target.id !== "chatInput") return;
+  autosize(e.target);
+  updateChatCount();
+});
+$("chatMain").addEventListener("click", async (e) => {
+  if (e.target.closest("#chatBack")) {
+    chatWith = null;
+    stopChatPolling();
+    renderConversations();
+    renderChatEmpty();
+    return;
+  }
+  if (e.target.closest("#chatMore") && chatFirstId) {
+    const box = $("chatMsgs");
+    const before = box.scrollHeight;
+    try {
+      const data = await api(
+        `/api/messages/${encodeURIComponent(chatWith)}?before=${chatFirstId}`
+      );
+      $("chatMore").remove();
+      const html = data.messages.map(messageHtml).join("");
+      box.insertAdjacentHTML(
+        "afterbegin",
+        (data.has_more
+          ? '<button type="button" class="btn btn-link chat-more" id="chatMore">Load earlier messages</button>'
+          : "") + html
+      );
+      if (data.messages.length) chatFirstId = data.messages[0].id;
+      box.scrollTop = box.scrollHeight - before; // keep the reader's place
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+});
 loadCatalog().finally(refresh);
