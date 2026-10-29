@@ -142,3 +142,16 @@ CREATE TABLE IF NOT EXISTS user_achievements (
 -- indexing
 CREATE INDEX IF NOT EXISTS idx_user_achievements_code ON user_achievements(code);
 CREATE INDEX IF NOT EXISTS idx_user_achievements_featured ON user_achievements(user_id) WHERE featured;
+
+
+-- Fix for games that are cancelled
+-- Wagers on these games will be refunded
+ALTER TABLE games DROP CONSTRAINT IF EXISTS games_status_check;
+ALTER TABLE games ADD CONSTRAINT games_status_check CHECK (status IN ('scheduled', 'in_progress', 'final', 'canceled'));
+
+ALTER TABLE predictions DROP CONSTRAINT IF EXISTS predictions_result_check;
+ALTER TABLE predictions ADD CONSTRAINT predictions_result_check CHECK (result IN ('pending', 'correct', 'incorrect', 'void'));
+CREATE INDEX IF NOT EXISTS idx_predictions_game_id ON predictions(game_id); -- settlement joins on this
+
+
+-- Fixing to one prediction per game because before the page would hide the Predict
