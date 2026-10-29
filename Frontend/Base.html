@@ -12,58 +12,226 @@
     <link rel="stylesheet" href="Base.css" />
     <style>
       /* ---- Homepage (all rules scoped to #landing so Base.css is unaffected) ---- */
-      .brand { cursor: pointer; }
-      #landing .lp-hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 3rem; align-items: center; padding: 3rem 0 3rem; }
-      #landing h1 { margin: 0 0 1.1rem; font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-weight: 700; font-size: clamp(2.8rem, 7vw, 4.7rem); line-height: .98; }
-      #landing .lp-lede { color: var(--muted); font-size: 1.2rem; max-width: 34rem; margin: 0 0 1.8rem; }
-      #landing .lp-cta { display: flex; gap: .7rem; flex-wrap: wrap; }
-      #landing .lp-btn { display: inline-block; text-decoration: none; padding: .8rem 1.8rem; font-size: 1.1rem; }
-      #landing .lp-note { margin-top: 1rem; font-size: .9rem; color: var(--muted); }
+      .brand {
+        cursor: pointer;
+      }
+      #landing .lp-hero {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 3rem;
+        align-items: center;
+        padding: 3rem 0 3rem;
+      }
+      #landing h1 {
+        margin: 0 0 1.1rem;
+        font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+        font-weight: 700;
+        font-size: clamp(2.8rem, 7vw, 4.7rem);
+        line-height: 0.98;
+      }
+      #landing .lp-lede {
+        color: var(--muted);
+        font-size: 1.2rem;
+        max-width: 34rem;
+        margin: 0 0 1.8rem;
+      }
+      #landing .lp-cta {
+        display: flex;
+        gap: 0.7rem;
+        flex-wrap: wrap;
+      }
+      #landing .lp-btn {
+        display: inline-block;
+        text-decoration: none;
+        padding: 0.8rem 1.8rem;
+        font-size: 1.1rem;
+      }
+      #landing .lp-note {
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
 
-      #landing .lp-tile { background: var(--bg-card); border: 1px solid var(--line); border-top: 3px solid var(--gold); border-radius: 8px; padding: 1.2rem; box-shadow: 0 24px 60px rgba(0,0,0,.45); }
-      #landing .lp-tile-top { display: flex; justify-content: space-between; font-size: .82rem; color: var(--muted); margin-bottom: .9rem; }
-      #landing .lp-sport { font-weight: 700; color: var(--gold); letter-spacing: .07em; text-transform: uppercase; }
-      #landing .lp-wagers { display: flex; gap: .5rem; margin-bottom: .8rem; }
-      #landing .lp-out { min-height: 1.6em; margin: 0; font-size: .95rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-      #landing .lp-out .w { color: var(--win); font-weight: 700; }
-      #landing .lp-out .l { color: var(--loss); font-weight: 700; }
+      #landing .lp-tile {
+        background: var(--bg-card);
+        border: 1px solid var(--line);
+        border-top: 3px solid var(--gold);
+        border-radius: 8px;
+        padding: 1.2rem;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      }
+      #landing .lp-tile-top {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin-bottom: 0.9rem;
+      }
+      #landing .lp-sport {
+        font-weight: 700;
+        color: var(--gold);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      #landing .lp-wagers {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.8rem;
+      }
+      #landing .lp-out {
+        min-height: 1.6em;
+        margin: 0;
+        font-size: 0.95rem;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      #landing .lp-out .w {
+        color: var(--win);
+        font-weight: 700;
+      }
+      #landing .lp-out .l {
+        color: var(--loss);
+        font-weight: 700;
+      }
 
-      #landing .lp-sec { padding: 3rem 0; border-top: 1px solid var(--line); }
-      #landing .lp-sec h2 { font-size: 2.2rem; margin: 0 0 .5rem; }
-      #landing .lp-sub { color: var(--muted); margin: 0 0 2rem; max-width: 38rem; }
-      #landing .lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; counter-reset: s; }
-      #landing .lp-step { background: var(--bg-card); border: 1px solid var(--line); border-left: 3px solid var(--green); border-radius: 6px; padding: 1.2rem; }
-      #landing .lp-step::before { counter-increment: s; content: counter(s); font: 700 2.2rem "Barlow Condensed", sans-serif; color: var(--gold); }
-      #landing .lp-step h3, #landing .lp-f h3 { margin: .1rem 0 .3rem; font: 700 1.4rem "Barlow Condensed", sans-serif; }
-      #landing .lp-step p, #landing .lp-f p { margin: 0; color: var(--muted); font-size: .97rem; }
-      #landing .lp-feat { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-      #landing .lp-f { display: flex; gap: 1rem; background: var(--bg-card); border: 1px solid var(--line); border-radius: 6px; padding: 1.1rem; }
-      #landing .lp-f svg { flex: none; width: 44px; height: 44px; }
-      #landing .lp-tiers { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.4rem; }
-      #landing .lp-tp { font-size: .78rem; font-weight: 700; padding: .15rem .7rem; border-radius: 999px; border: 1px solid; }
-      #landing .t1 { color:#c3cfca; background:rgba(195,207,202,.12); border-color:rgba(195,207,202,.45); }
-      #landing .t2 { color:#5ce6a8; background:rgba(92,230,168,.12); border-color:rgba(92,230,168,.45); }
-      #landing .t3 { color:#7cc0ff; background:rgba(124,192,255,.13); border-color:rgba(124,192,255,.45); }
-      #landing .t4 { color:#d3a6ff; background:rgba(211,166,255,.13); border-color:rgba(211,166,255,.45); }
-      #landing .t5 { color:#ffd977; background:rgba(255,217,119,.14); border-color:rgba(255,217,119,.45); }
-      #landing .lp-final { text-align: center; }
-      #landing .lp-final .lp-sub { margin-left: auto; margin-right: auto; }
+      #landing .lp-sec {
+        padding: 3rem 0;
+        border-top: 1px solid var(--line);
+      }
+      #landing .lp-sec h2 {
+        font-size: 2.2rem;
+        margin: 0 0 0.5rem;
+      }
+      #landing .lp-sub {
+        color: var(--muted);
+        margin: 0 0 2rem;
+        max-width: 38rem;
+      }
+      #landing .lp-steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        counter-reset: s;
+      }
+      #landing .lp-step {
+        background: var(--bg-card);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--green);
+        border-radius: 6px;
+        padding: 1.2rem;
+      }
+      #landing .lp-step::before {
+        counter-increment: s;
+        content: counter(s);
+        font:
+          700 2.2rem "Barlow Condensed",
+          sans-serif;
+        color: var(--gold);
+      }
+      #landing .lp-step h3,
+      #landing .lp-f h3 {
+        margin: 0.1rem 0 0.3rem;
+        font:
+          700 1.4rem "Barlow Condensed",
+          sans-serif;
+      }
+      #landing .lp-step p,
+      #landing .lp-f p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.97rem;
+      }
+      #landing .lp-feat {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+      }
+      #landing .lp-f {
+        display: flex;
+        gap: 1rem;
+        background: var(--bg-card);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 1.1rem;
+      }
+      #landing .lp-f svg {
+        flex: none;
+        width: 44px;
+        height: 44px;
+      }
+      #landing .lp-tiers {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1.4rem;
+      }
+      #landing .lp-tp {
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 0.15rem 0.7rem;
+        border-radius: 999px;
+        border: 1px solid;
+      }
+      #landing .t1 {
+        color: #d08a4a;
+        background: rgba(208, 138, 74, 0.12);
+        border-color: rgba(208, 138, 74, 0.45);
+      }
+      #landing .t2 {
+        color: #b8c2cc;
+        background: rgba(184, 194, 204, 0.1);
+        border-color: rgba(184, 194, 204, 0.45);
+      }
+      #landing .t3 {
+        color: #f2c14e;
+        background: rgba(242, 193, 78, 0.14);
+        border-color: rgba(242, 193, 78, 0.45);
+      }
+      #landing .t4 {
+        color: #e4ecf2;
+        background: rgba(228, 236, 242, 0.12);
+        border-color: rgba(228, 236, 242, 0.45);
+      }
+      #landing .t5 {
+        color: #7fdcff;
+        background: rgba(127, 220, 255, 0.13);
+        border-color: rgba(127, 220, 255, 0.45);
+      }
+      #landing .lp-final {
+        text-align: center;
+      }
+      #landing .lp-final .lp-sub {
+        margin-left: auto;
+        margin-right: auto;
+      }
       @media (max-width: 820px) {
-        #landing .lp-hero { grid-template-columns: 1fr; gap: 2rem; padding: 2rem 0; }
-        #landing .lp-steps, #landing .lp-feat { grid-template-columns: 1fr; }
+        #landing .lp-hero {
+          grid-template-columns: 1fr;
+          gap: 2rem;
+          padding: 2rem 0;
+        }
+        #landing .lp-steps,
+        #landing .lp-feat {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
     <header class="topbar">
       <div class="topbar-inner">
-        <h1 class="brand" id="brandHome" tabindex="0" role="link">Gold Rush Exchange</h1>
+        <h1 class="brand" id="brandHome" tabindex="0" role="link">
+          Gold Rush Exchange
+        </h1>
         <nav class="tabs">
           <button class="tab active" data-tab="home">Home</button>
           <button class="tab" data-tab="posts">Posts</button>
           <button class="tab" data-tab="predictions">Predictions</button>
           <button class="tab" data-tab="leaderboard">Leaderboard</button>
           <button class="tab" data-tab="following" id="followingTab" hidden>
+            <button class="tab" data-tab="messages" id="messagesTab" hidden>
+              Messages <span class="tab-count" id="msgCount" hidden></span>
+            </button>
             Following
           </button>
           <button class="tab" data-tab="compare" id="compareTab" hidden>
@@ -74,6 +242,48 @@
           </button>
         </nav>
         <div class="auth">
+          <div class="notif-wrap">
+            <button
+              type="button"
+              id="notifBtn"
+              class="notif-btn"
+              aria-label="Notifications"
+              aria-haspopup="true"
+              aria-expanded="false"
+              hidden
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+              </svg>
+              <span class="notif-count" id="notifCount" hidden></span>
+            </button>
+            <div
+              class="notif-panel"
+              id="notifPanel"
+              role="dialog"
+              aria-label="Notifications"
+              hidden
+            >
+              <div class="notif-head">
+                <strong>Notifications</strong>
+                <button type="button" class="btn btn-link" id="notifReadAll">
+                  Mark all read
+                </button>
+              </div>
+              <div class="notif-list" id="notifList"></div>
+            </div>
+          </div>
           <span id="userLabel" hidden></span>
           <span id="repBadge" class="badge" hidden></span>
           <button id="authBtn" class="btn btn-gold">Log in</button>
@@ -83,73 +293,264 @@
 
     <!-- ===== HOMEPAGE ===== -->
     <div id="landing">
-      <div class="topbar-inner" style="display:block">
+      <div class="topbar-inner" style="display: block">
         <div class="lp-hero">
           <div>
             <h1>Call the game. Stake your rep.</h1>
-            <p class="lp-lede">The prediction exchange for Charlotte sports. Pick winners in 49ers football and college hoops, wager reputation, and climb the leaderboard.</p>
+            <p class="lp-lede">
+              The prediction exchange for Charlotte sports. Pick winners in
+              49ers football and college hoops, wager reputation, and climb the
+              leaderboard.
+            </p>
             <div class="lp-cta">
-              <button type="button" class="btn btn-gold lp-btn" id="lpStart">Start predicting</button>
+              <button type="button" class="btn btn-gold lp-btn" id="lpStart">
+                Start predicting
+              </button>
               <a class="btn btn-outline lp-btn" href="#lpHow">How it works</a>
             </div>
-            <p class="lp-note">Sign up with your @charlotte.edu email. No real money, only reputation.</p>
+            <p class="lp-note">
+              Sign up with your @charlotte.edu email. No real money, only
+              reputation.
+            </p>
           </div>
 
           <div class="lp-tile" aria-label="Try a sample prediction">
-            <div class="lp-tile-top"><span class="lp-sport">Basketball</span><span>Sample game</span></div>
-            <div class="pick-grid" role="group" aria-label="Pick a winner" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1rem">
-              <button type="button" class="pick-btn lp-pick" aria-pressed="false" data-team="Charlotte"><small>Away</small>Charlotte</button>
-              <button type="button" class="pick-btn lp-pick" aria-pressed="false" data-team="Opponent"><small>Home</small>Opponent</button>
+            <div class="lp-tile-top">
+              <span class="lp-sport">Basketball</span><span>Sample game</span>
+            </div>
+            <div
+              class="pick-grid"
+              role="group"
+              aria-label="Pick a winner"
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.6rem;
+                margin-bottom: 1rem;
+              "
+            >
+              <button
+                type="button"
+                class="pick-btn lp-pick"
+                aria-pressed="false"
+                data-team="Charlotte"
+              >
+                <small>Away</small>Charlotte
+              </button>
+              <button
+                type="button"
+                class="pick-btn lp-pick"
+                aria-pressed="false"
+                data-team="Opponent"
+              >
+                <small>Home</small>Opponent
+              </button>
             </div>
             <div class="lp-wagers" role="group" aria-label="Wager">
-              <button type="button" class="chip lp-chip" aria-pressed="false" data-n="10">10</button>
-              <button type="button" class="chip lp-chip" aria-pressed="false" data-n="25">25</button>
-              <button type="button" class="chip lp-chip" aria-pressed="false" data-n="50">50</button>
+              <button
+                type="button"
+                class="chip lp-chip"
+                aria-pressed="false"
+                data-n="10"
+              >
+                10
+              </button>
+              <button
+                type="button"
+                class="chip lp-chip"
+                aria-pressed="false"
+                data-n="25"
+              >
+                25
+              </button>
+              <button
+                type="button"
+                class="chip lp-chip"
+                aria-pressed="false"
+                data-n="50"
+              >
+                50
+              </button>
             </div>
-            <p class="lp-out" id="lpOut" aria-live="polite">Pick a team and a wager to see the stakes.</p>
+            <p class="lp-out" id="lpOut" aria-live="polite">
+              Pick a team and a wager to see the stakes.
+            </p>
           </div>
         </div>
 
         <section class="lp-sec" id="lpHow">
           <h2>How it works</h2>
-          <p class="lp-sub">Every player starts with reputation. What you do with it is up to you.</p>
+          <p class="lp-sub">
+            Every player starts with reputation. What you do with it is up to
+            you.
+          </p>
           <div class="lp-steps">
-            <div class="lp-step"><h3>Pick a winner</h3><p>Browse upcoming football and basketball games, filter by Charlotte or the Top 25, and choose a side.</p></div>
-            <div class="lp-step"><h3>Wager reputation</h3><p>Stake any amount you hold. Win and you gain it. Lose and it's gone.</p></div>
-            <div class="lp-step"><h3>Climb the board</h3><p>Games settle automatically. Watch your rank, accuracy and record update.</p></div>
+            <div class="lp-step">
+              <h3>Pick a winner</h3>
+              <p>
+                Browse upcoming football and basketball games, filter by
+                Charlotte or the Top 25, and choose a side.
+              </p>
+            </div>
+            <div class="lp-step">
+              <h3>Wager reputation</h3>
+              <p>
+                Stake any amount you hold. Win and you gain it. Lose and it's
+                gone.
+              </p>
+            </div>
+            <div class="lp-step">
+              <h3>Climb the board</h3>
+              <p>
+                Games settle automatically. Watch your rank, accuracy and record
+                update.
+              </p>
+            </div>
           </div>
         </section>
 
         <section class="lp-sec">
           <h2>More than a scoreboard</h2>
-          <p class="lp-sub">It's a community. Talk trash, follow sharp pickers and see who really knows the game.</p>
+          <p class="lp-sub">
+            It's a community. Talk trash, follow sharp pickers and see who
+            really knows the game.
+          </p>
           <div class="lp-feat">
             <div class="lp-f">
-              <svg viewBox="0 0 48 48" aria-hidden="true"><polygon points="24,2 43,13 43,35 24,46 5,35 5,13" fill="#d4af5a"/><polygon points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75" fill="rgba(6,14,11,.5)"/><g transform="translate(14 14) scale(.8333)" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c.8 3.6 5 5.2 5 10.2a5 5 0 0 1-10 0c0-2.4 1.3-3.6 2-5.2.9 1.4 1.6 2 2.6 2.2C11.4 8.3 11 5.8 12 3z"/></g></svg>
-              <div><h3>Achievements and badges</h3><p>Earn badges for streaks, upsets and big wins. Show your favorites next to your name.</p></div>
+              <svg viewBox="0 0 48 48" aria-hidden="true">
+                <polygon
+                  points="24,2 43,13 43,35 24,46 5,35 5,13"
+                  fill="#d4af5a"
+                />
+                <polygon
+                  points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75"
+                  fill="rgba(6,14,11,.5)"
+                />
+                <g
+                  transform="translate(14 14) scale(.8333)"
+                  fill="none"
+                  stroke="#fff"
+                  stroke-width="2.1"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M12 3c.8 3.6 5 5.2 5 10.2a5 5 0 0 1-10 0c0-2.4 1.3-3.6 2-5.2.9 1.4 1.6 2 2.6 2.2C11.4 8.3 11 5.8 12 3z"
+                  />
+                </g>
+              </svg>
+              <div>
+                <h3>Achievements and badges</h3>
+                <p>
+                  Earn badges for streaks, upsets and big wins. Show your
+                  favorites next to your name.
+                </p>
+              </div>
             </div>
             <div class="lp-f">
-              <svg viewBox="0 0 48 48" aria-hidden="true"><polygon points="24,2 43,13 43,35 24,46 5,35 5,13" fill="#15b981"/><polygon points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75" fill="rgba(6,14,11,.5)"/><g transform="translate(14 14) scale(.8333)" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8 8 12.2 12 5l4 7.2L20.5 8 18.8 19H5.2z"/><path d="M5.2 19h13.6"/></g></svg>
-              <div><h3>Leaderboard</h3><p>Rank by reputation or achievement score, across everyone or just your friends.</p></div>
+              <svg viewBox="0 0 48 48" aria-hidden="true">
+                <polygon
+                  points="24,2 43,13 43,35 24,46 5,35 5,13"
+                  fill="#15b981"
+                />
+                <polygon
+                  points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75"
+                  fill="rgba(6,14,11,.5)"
+                />
+                <g
+                  transform="translate(14 14) scale(.8333)"
+                  fill="none"
+                  stroke="#fff"
+                  stroke-width="2.1"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M3.5 8 8 12.2 12 5l4 7.2L20.5 8 18.8 19H5.2z" />
+                  <path d="M5.2 19h13.6" />
+                </g>
+              </svg>
+              <div>
+                <h3>Leaderboard</h3>
+                <p>
+                  Rank by reputation or achievement score, across everyone or
+                  just your friends.
+                </p>
+              </div>
             </div>
             <div class="lp-f">
-              <svg viewBox="0 0 48 48" aria-hidden="true"><polygon points="24,2 43,13 43,35 24,46 5,35 5,13" fill="#7cc0ff"/><polygon points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75" fill="rgba(6,14,11,.5)"/><g transform="translate(14 14) scale(.8333)" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.4 2.7-6 6-6s6 2.6 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M15.8 14.2c2.9.3 5.2 2.6 5.2 5.8"/></g></svg>
-              <div><h3>Follow and compare</h3><p>Follow other players, peek at their picks and compare stats side by side.</p></div>
+              <svg viewBox="0 0 48 48" aria-hidden="true">
+                <polygon
+                  points="24,2 43,13 43,35 24,46 5,35 5,13"
+                  fill="#7cc0ff"
+                />
+                <polygon
+                  points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75"
+                  fill="rgba(6,14,11,.5)"
+                />
+                <g
+                  transform="translate(14 14) scale(.8333)"
+                  fill="none"
+                  stroke="#fff"
+                  stroke-width="2.1"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="9" cy="8" r="3.2" />
+                  <path d="M3 20c0-3.4 2.7-6 6-6s6 2.6 6 6" />
+                  <circle cx="17" cy="9" r="2.4" />
+                  <path d="M15.8 14.2c2.9.3 5.2 2.6 5.2 5.8" />
+                </g>
+              </svg>
+              <div>
+                <h3>Follow and compare</h3>
+                <p>
+                  Follow other players, peek at their picks and compare stats
+                  side by side.
+                </p>
+              </div>
             </div>
             <div class="lp-f">
-              <svg viewBox="0 0 48 48" aria-hidden="true"><polygon points="24,2 43,13 43,35 24,46 5,35 5,13" fill="#d3a6ff"/><polygon points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75" fill="rgba(6,14,11,.5)"/><g transform="translate(14 14) scale(.8333)" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9.5L5 20v-4H4z"/></g></svg>
-              <div><h3>Posts and comments</h3><p>Share takes on the big game and react to everyone else's.</p></div>
+              <svg viewBox="0 0 48 48" aria-hidden="true">
+                <polygon
+                  points="24,2 43,13 43,35 24,46 5,35 5,13"
+                  fill="#d3a6ff"
+                />
+                <polygon
+                  points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75"
+                  fill="rgba(6,14,11,.5)"
+                />
+                <g
+                  transform="translate(14 14) scale(.8333)"
+                  fill="none"
+                  stroke="#fff"
+                  stroke-width="2.1"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M4 5h16v11H9.5L5 20v-4H4z" />
+                </g>
+              </svg>
+              <div>
+                <h3>Posts and comments</h3>
+                <p>Share takes on the big game and react to everyone else's.</p>
+              </div>
             </div>
           </div>
           <div class="lp-tiers" aria-label="Achievement tiers">
-            <span class="lp-tp t1">Bronze</span><span class="lp-tp t2">Silver</span><span class="lp-tp t3">Gold</span><span class="lp-tp t4">Platinum</span><span class="lp-tp t5">Diamond</span>
+            <span class="lp-tp t1">Bronze</span
+            ><span class="lp-tp t2">Silver</span
+            ><span class="lp-tp t3">Gold</span
+            ><span class="lp-tp t4">Platinum</span
+            ><span class="lp-tp t5">Diamond</span>
           </div>
         </section>
 
         <section class="lp-sec lp-final">
           <h2>Your claim is waiting</h2>
           <p class="lp-sub">Make your first pick before the next tip-off.</p>
-          <button type="button" class="btn btn-gold lp-btn" id="lpJoin">Join the Exchange</button>
+          <button type="button" class="btn btn-gold lp-btn" id="lpJoin">
+            Join the Exchange
+          </button>
         </section>
       </div>
     </div>
@@ -180,7 +581,13 @@
             rows="3"
             required
           ></textarea>
-          <button class="btn">Post</button>
+          <div class="post-actions">
+            <button class="btn">Post</button>
+            <p class="rep-hint">
+              Posts earn +5 rep (3 a day) · comments on others' posts +2 (10 a
+              day) · each like you get +1 (20 a day)
+            </p>
+          </div>
         </form>
         <p class="hint" id="postsHint">Log in to write a post.</p>
         <div id="postList"></div>
@@ -294,6 +701,16 @@
         <div id="followingBody"></div>
       </section>
 
+      <section id="messages" class="panel" hidden>
+        <div class="posts-head">
+          <h2>Messages</h2>
+        </div>
+        <div class="chat" id="chat">
+          <div class="chat-list" id="chatList" aria-label="Conversations"></div>
+          <div class="chat-main" id="chatMain"></div>
+        </div>
+      </section>
+
       <section id="compare" class="panel" hidden>
         <div class="posts-head">
           <h2>Compare</h2>
@@ -402,24 +819,39 @@
     <!-- Homepage behavior (kept separate so Base.js stays unchanged) -->
     <script>
       (function () {
-        const landing = document.getElementById("landing");
-        const main = document.querySelector("main");
+        // const landing = document.getElementById("landing");
+        // const main = document.querySelector("main");
         const authBtn = document.getElementById("authBtn");
-        const showApp = () => { landing.hidden = true; main.hidden = false; };
-        const showHome = () => {
-          landing.hidden = false; main.hidden = true;
-          document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "home"));
-          window.scrollTo(0, 0);
-        };
+        // const showApp = () => {
+        //   landing.hidden = true;
+        //   main.hidden = false;
+        // };
+        // const showHome = () => {
+        //   landing.hidden = false;
+        //   main.hidden = true;
+        //   document
+        //     .querySelectorAll(".tab")
+        //     .forEach((t) =>
+        //       t.classList.toggle("active", t.dataset.tab === "home")
+        //     );
+        //   window.scrollTo(0, 0);
+        // };
 
-        // Home tab shows the homepage; every other tab opens the app.
-        // The homepage stays up until a tab is chosen, so logging in does not hide it.
-        document.querySelectorAll(".tab").forEach((t) =>
-          t.addEventListener("click", () => (t.dataset.tab === "home" ? showHome() : showApp()))
-        );
+        // // Home tab shows the homepage; every other tab opens the app.
+        // // The homepage stays up until a tab is chosen, so logging in does not hide it.
+        // document
+        //   .querySelectorAll(".tab")
+        //   .forEach((t) =>
+        //     t.addEventListener("click", () =>
+        //       t.dataset.tab === "home" ? showHome() : showApp()
+        //     )
+        //   );
         const brand = document.getElementById("brandHome");
+        const showHome = () => showTab("home");
         brand.addEventListener("click", showHome);
-        brand.addEventListener("keydown", (e) => { if (e.key === "Enter") showHome(); });
+        brand.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") showHome();
+        });
         document.getElementById("achToast").addEventListener("click", showApp);
 
         // call-to-action buttons: logged out -> open login (stay on home); logged in -> go to Predictions
@@ -431,23 +863,31 @@
         document.getElementById("lpJoin").addEventListener("click", start);
 
         // sample pick tile
-        let team = null, n = 0;
+        let team = null,
+          n = 0;
         const out = document.getElementById("lpOut");
         const draw = () => {
-          out.innerHTML = team && n
-            ? `You pick <b>${team}</b> · Win <b class="w">+${n}</b> · Lose <b class="l">-${n}</b> rep`
-            : "Pick a team and a wager to see the stakes.";
+          out.innerHTML =
+            team && n
+              ? `You pick <b>${team}</b> · Win <b class="w">+${n}</b> · Lose <b class="l">-${n}</b> rep`
+              : "Pick a team and a wager to see the stakes.";
         };
-        document.querySelectorAll(".lp-pick").forEach((b) => b.addEventListener("click", () => {
-          team = b.dataset.team;
-          document.querySelectorAll(".lp-pick").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-          draw();
-        }));
-        document.querySelectorAll(".lp-chip").forEach((b) => b.addEventListener("click", () => {
-          n = Number(b.dataset.n);
-          document.querySelectorAll(".lp-chip").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-          draw();
-        }));
+        document.querySelectorAll(".lp-pick").forEach((b) =>
+          b.addEventListener("click", () => {
+            team = b.dataset.team;
+            // document.querySelectorAll(".lp-pick").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+            draw();
+          })
+        );
+        document.querySelectorAll(".lp-chip").forEach((b) =>
+          b.addEventListener("click", () => {
+            n = Number(b.dataset.n);
+            document
+              .querySelectorAll(".lp-chip")
+              .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+            draw();
+          })
+        );
       })();
     </script>
   </body>
