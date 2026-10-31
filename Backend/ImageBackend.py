@@ -1,3 +1,4 @@
+#pip install Pillow, python apply_schema.py
 import io
 import re
 import uuid
