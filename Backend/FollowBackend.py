@@ -52,7 +52,8 @@ def get_following_feed(user_id, limit=FEED_LIMIT):
     return query(
         """
         SELECT type, username, title, body, result, points, created_at FROM (
-            SELECT 'post' AS type, u.username, NULL::text AS title, p.content AS body,
+            SELECT 'post' AS type, u.username, NULL::text AS title,
+                   CASE WHEN p.content = '' THEN '(photo)' ELSE p.content END AS body,
                    NULL::text AS result, NULL::int AS points, p.created_at
             FROM posts p
             JOIN users u ON u.id = p.user_id

@@ -2019,3 +2019,74 @@ dialog h2 {
     padding-inline: 0.8rem;
   }
 }
+
+/* Post thumbs up / down and pictures */
+.post-foot .like {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.like svg.thumb {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: currentColor;
+}
+.like svg.thumb.down {
+  transform: rotate(180deg);
+}
+.like.disliked {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: var(--loss);
+  color: var(--loss);
+}
+.like.disliked:hover {
+  border-color: var(--gold);
+  color: var(--gold-soft);
+  background: rgba(212, 175, 90, 0.12);
+}
+.post-img-link {
+  display: block;
+  margin: 0.4rem 0 0.8rem;
+}
+.post-img {
+  display: block;
+  max-width: 100%;
+  max-height: 28rem;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-raised);
+}
+.post-preview {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 0.75rem;
+}
+.post-preview img {
+  display: block;
+  max-width: 14rem;
+  max-height: 10rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.preview-remove {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: var(--ink);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.preview-remove:hover {
+  border-color: var(--gold);
+}
+.preview-remove:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}

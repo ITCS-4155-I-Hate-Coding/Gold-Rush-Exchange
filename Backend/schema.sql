@@ -212,3 +212,14 @@ CREATE INDEX IF NOT EXISTS idx_messages_pair ON messages(sender_id, recipient_id
 -- unread counts for the Messages tab badge
 CREATE INDEX IF NOT EXISTS idx_messages_unread ON messages(recipient_id) WHERE read_at IS NULL;
 
+-- Post dislikes (thumbs down). Same idea as post_likes, and a user has a like OR a dislike on a post, never both.
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS dislikes INTEGER NOT NULL DEFAULT 0; -- cached number of dislikes, like posts.likes
+CREATE TABLE IF NOT EXISTS post_dislikes (
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    post_id INT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, post_id)
+);
+
+-- Post pictures: the saved file's name (the file lives in the uploads folder). NULL = a text-only post.
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_filename TEXT;

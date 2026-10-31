@@ -579,10 +579,20 @@
             id="postBody"
             placeholder="Share something with the exchange"
             rows="3"
-            required
           ></textarea>
+          <div id="postImagePreview" class="post-preview" hidden>
+            <img id="postImageThumb" alt="Preview of the photo you are about to post" />
+            <button type="button" id="postImageRemove" class="preview-remove" aria-label="Remove photo">×</button>
+          </div>
           <div class="post-actions">
             <button class="btn">Post</button>
+            <input
+              type="file"
+              id="postImage"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              hidden
+            />
+            <button type="button" class="btn btn-outline" id="postImageBtn">Add photo</button>
             <p class="rep-hint">
               Posts earn +5 rep (3 a day) · comments on others' posts +2 (10 a
               day) · each like you get +1 (20 a day)

@@ -55,7 +55,8 @@ def get_profile(user_id, recent_limit=RECENT_LIMIT, viewer_id=None):
     activity = query(
         """
         SELECT type, title, body, result, points, created_at FROM (
-            SELECT 'post' AS type, NULL::text AS title, content AS body,
+            SELECT 'post' AS type, NULL::text AS title,
+                   CASE WHEN content = '' THEN '(photo)' ELSE content END AS body,
                    NULL::text AS result, NULL::int AS points, created_at
             FROM posts WHERE user_id = %s
             UNION ALL
@@ -129,4 +130,4 @@ def get_predictions_by_username(username):
         "ORDER BY p.created_at DESC LIMIT %s",
         (user["id"], PAST_LIMIT),
     )
-    return {"username": username, "current": current, "past": past}    
+    return {"username": username, "current": current, "past": past}

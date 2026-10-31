@@ -7,3 +7,6 @@ __pycache__/
 # .env
 .DS_Store
 # Backend/app.py
+
+# pictures users upload in posts
+uploads/

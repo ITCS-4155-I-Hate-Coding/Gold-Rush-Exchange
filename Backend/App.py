@@ -15,6 +15,7 @@ import GameBackend as games
 import RepBackend as rep
 import NotificationBackend as notifications
 import ChatBackend as chat
+import ImageBackend as images
 
 FRONTEND = Path(__file__).resolve().parent.parent / "Frontend"
 app = Flask(__name__, static_folder=str(FRONTEND), static_url_path="")
@@ -52,6 +53,20 @@ def int_arg(name):
         return int(request.args[name])
     except (KeyError, ValueError):
         return None
+
+SMALL_REQUEST_MAX = 64 * 1024
+
+
+@app.before_request
+def limit_small_requests():
+    # only the new-post route may carry a picture; refuse any other request over 64 KB
+    if request.content_length and request.content_length > SMALL_REQUEST_MAX and request.endpoint != "add_post":
+        return jsonify(error="That request is too large."), 413
+
+
+@app.errorhandler(413)
+def too_large(_):
+    return jsonify(error="That file is too large. Pictures can be at most 5 MB."), 413
 
 
 @app.errorhandler(500)
@@ -148,9 +163,17 @@ def add_post():
     if "user_id" not in session:
         return need_login()
     uid = session["user_id"]
-    d = request.get_json(silent=True) or {}
-    content = d.get("content") or ""
-    ok, message, post_id = posts.create_post(uid, content)
+    image = None
+    if request.mimetype == "multipart/form-data":
+        # a post that can carry a picture is sent as a form
+        content = request.form.get("content") or ""
+        image = request.files.get("image")
+        if image and not image.filename:
+            image = None  # the form's file box was left empty
+    else:
+        d = request.get_json(silent=True) or {}
+        content = d.get("content") or ""
+    ok, message, post_id = posts.create_post(uid, content, image)
     if not ok:
         return answer(ok, message)
     # +5 for the post (capped, see RepBackend); the reply says what was earned and why
@@ -168,6 +191,24 @@ def like_post(post_id):
         # likes count toward the author's achievements (and +1 rep, inside like_post)
         achievements.try_check_post_author(post_id)
     return answer(ok, message)
+
+
+@app.post("/api/posts/<int:post_id>/dislike")
+def dislike_post(post_id):
+    if "user_id" not in session:
+        return need_login()
+    ok, message = posts.dislike_post(session["user_id"], post_id)
+    return answer(ok, message)
+
+
+@app.get("/uploads/<name>")
+def uploaded_image(name):
+    # only names we created ourselves are served (see ImageBackend.valid_name)
+    if not images.valid_name(name):
+        return jsonify(error="Not found."), 404
+    response = send_from_directory(images.UPLOAD_DIR, name, max_age=86400)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 # ---------- Comments ----------

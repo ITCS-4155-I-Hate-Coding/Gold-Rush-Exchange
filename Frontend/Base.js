@@ -13,10 +13,12 @@ let lbView = "global"; // or "following"
 let lbSort = "reputation";
 
 async function api(path, method = "GET", body) {
+  // a FormData body (a post with a picture) is sent as it is; everything else is JSON
+  const isForm = body instanceof FormData;
   const res = await fetch(path, {
     method,
-    headers: { "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined
+    headers: isForm ? {} : { "Content-Type": "application/json" },
+    body: body ? (isForm ? body : JSON.stringify(body)) : undefined
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Something went wrong");
@@ -35,6 +37,9 @@ const when = (d) => (d ? new Date(d).toLocaleDateString() : "");
 // every time username is shown, there are badges showing next to it
 const userLink = (u, badges) =>
   `<button type="button" class="user-link" data-user="${esc(u)}">${esc(u)}</button>${badgeRow(badges)}`;
+// thumbs-up / thumbs-down icons (the down one is the up one turned upside down in the CSS)
+const thumbIcon = (dir) =>
+  `<svg class="thumb ${dir}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>`;
 const initial = (u) => esc((u || "?").trim().charAt(0).toUpperCase() || "?");
 
 // ACHIEVEMENTS AND BADGES
@@ -666,9 +671,21 @@ function renderPosts() {
         <div class="post-head">
           <span class="avatar" aria-hidden="true">${initial(p.username)}</span>
           <div class="meta">${userLink(p.username, p.badges)} · ${when(p.created_at)}</div>        </div>
-        <p class="post-text">${esc(p.content)}</p>
+        ${p.content ? `<p class="post-text">${esc(p.content)}</p>` : ""}
+        ${
+          p.image_url
+            ? `<a class="post-img-link" href="${esc(p.image_url)}" target="_blank" rel="noopener"><img class="post-img" src="${esc(p.image_url)}" alt="Photo posted by ${esc(p.username)}" loading="lazy"></a>`
+            : ""
+        }
         <div class="post-foot">
-          <button class="like ${p.liked_by_me ? "liked" : ""}" data-like-post="${p.id}">${p.liked_by_me ? "Unlike" : "Like"} · ${p.likes}</button>
+          <button type="button" class="like ${p.liked_by_me ? "liked" : ""}" data-like-post="${p.id}"
+            aria-pressed="${p.liked_by_me ? "true" : "false"}"
+            title="${p.liked_by_me ? "Remove your like" : "Like"}"
+            aria-label="${p.liked_by_me ? "Remove your like" : "Like"} (${p.likes} likes)">${thumbIcon("up")}<span>${p.likes}</span></button>
+          <button type="button" class="like dislike ${p.disliked_by_me ? "disliked" : ""}" data-dislike-post="${p.id}"
+            aria-pressed="${p.disliked_by_me ? "true" : "false"}"
+            title="${p.disliked_by_me ? "Remove your dislike" : "Dislike"}"
+            aria-label="${p.disliked_by_me ? "Remove your dislike" : "Dislike"} (${p.dislikes ?? 0} dislikes)">${thumbIcon("down")}<span>${p.dislikes ?? 0}</span></button>
         </div>
         <div class="comments">
           <div class="comment-list"></div>
@@ -698,19 +715,63 @@ async function loadComments(postId) {
   }
 }
 
+// ---------- Photo on a new post ----------
+const IMAGE_MAX_BYTES = 5 * 1024 * 1024; // the server enforces the same 5 MB limit
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+
+function clearPostImage() {
+  const thumb = $("postImageThumb");
+  if (thumb.src.startsWith("blob:")) URL.revokeObjectURL(thumb.src);
+  thumb.removeAttribute("src");
+  $("postImage").value = "";
+  $("postImagePreview").hidden = true;
+}
+
+$("postImageBtn").addEventListener("click", () => $("postImage").click());
+$("postImageRemove").addEventListener("click", clearPostImage);
+
+$("postImage").addEventListener("change", () => {
+  const file = $("postImage").files[0];
+  if (!file) return clearPostImage();
+  if (!IMAGE_TYPES.includes(file.type)) {
+    clearPostImage();
+    return alert("Please choose a JPG, PNG, GIF or WebP image.");
+  }
+  if (file.size > IMAGE_MAX_BYTES) {
+    clearPostImage();
+    return alert("That image is over 5 MB. Please choose a smaller one.");
+  }
+  const thumb = $("postImageThumb");
+  if (thumb.src.startsWith("blob:")) URL.revokeObjectURL(thumb.src);
+  thumb.src = URL.createObjectURL(file);
+  $("postImagePreview").hidden = false;
+});
+
 $("postForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const text = $("postBody").value;
+  const file = $("postImage").files[0];
+  if (!text.trim() && !file) return alert("Write something or add a photo first.");
+
+  // sent as a form so the picture can travel with the text
+  const form = new FormData();
+  form.append("content", text);
+  if (file) form.append("image", file);
+
+  const postBtn = e.target.querySelector("button:not([type='button'])");
+  postBtn.disabled = true; // so a slow upload can't be posted twice
   try {
-    const res = await api("/api/posts", "POST", {
-      content: $("postBody").value
-    });
+    const res = await api("/api/posts", "POST", form);
     e.target.reset();
+    clearPostImage();
     // say what the post earned ("+5 rep") or why it didn't (daily limit, too short)
     showSuccessMessage(res.rep_note ? `Posted · ${res.rep_note}` : "Posted");
     loadPosts();
     loadMe();
   } catch (err) {
     alert(err.message);
+  } finally {
+    postBtn.disabled = false;
   }
 });
 
@@ -737,6 +798,9 @@ $("postList").addEventListener("click", async (e) => {
   try {
     if (btn.dataset.likePost) {
       await api(`/api/posts/${btn.dataset.likePost}/like`, "POST");
+      loadPosts();
+    } else if (btn.dataset.dislikePost) {
+      await api(`/api/posts/${btn.dataset.dislikePost}/dislike`, "POST");
       loadPosts();
     } else {
       await api(`/api/comments/${btn.dataset.likeComment}/like`, "POST");
