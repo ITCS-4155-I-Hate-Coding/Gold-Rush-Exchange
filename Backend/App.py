@@ -28,7 +28,7 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE") == "1",  # set to 1 when served over https
-    MAX_CONTENT_LENGTH=64 * 1024,  # refuse request bodies over 64 KB
+    MAX_CONTENT_LENGTH=images.REQUEST_MAX,  # 64KB limit
 )
 
 # achievements will sync every time the server starts and is wrapped in try/except
@@ -204,11 +204,26 @@ def dislike_post(post_id):
 @app.get("/uploads/<name>")
 def uploaded_image(name):
     # only names we created ourselves are served (see ImageBackend.valid_name)
-    if not images.valid_name(name):
-        return jsonify(error="Not found."), 404
-    response = send_from_directory(images.UPLOAD_DIR, name, max_age=86400)
+    found = images.get_image(name)
+    if not found:
+        return jsonify(error = "Not Found"), 404
+    data, mime = found
+    response = app.response_class(data, mimetype = mime)
+    response.headers["Cache-Control"] = "public, max-age=604800, immutable"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+# @app.get("/api/stats")
+# def site_stats():
+#     # adding number for the homepage
+#     return jsonify(profile.site_stats())
+
+
+    # if not images.valid_name(name):
+    #     return jsonify(error="Not found."), 404
+    # response = send_from_directory(images.UPLOAD_DIR, name, max_age=86400)
+    # response.headers["X-Content-Type-Options"] = "nosniff"
+    # return response
 
 
 # ---------- Comments ----------
