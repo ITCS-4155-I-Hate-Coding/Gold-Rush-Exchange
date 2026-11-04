@@ -223,3 +223,12 @@ CREATE TABLE IF NOT EXISTS post_dislikes (
 
 -- Post pictures: the saved file's name (the file lives in the uploads folder). NULL = a text-only post.
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_filename TEXT;
+
+
+-- post pictures, stored in database so every computer running the app can see it instead of it being locally on ones own computer
+CREATE TABLE IF NOT EXISTS post_images (
+    name TEXT PRIMARY KEY,
+    mime TEXT NOT NULL,
+    data BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
