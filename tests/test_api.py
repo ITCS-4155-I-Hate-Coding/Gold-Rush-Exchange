@@ -36,7 +36,7 @@ def rep_of(name):
 
 # clean slate
 for t in ["messages", "notifications", "rep_events", "user_achievements", "follows", "comment_likes",
-          "post_likes", "comments", "posts", "predictions", "games", "users"]:
+          "post_dislikes", "post_likes", "comments", "posts", "post_images", "predictions", "games", "users"]:
     query(f"DELETE FROM {t}", fetch=False)
 
 print("== accounts")
@@ -230,6 +230,32 @@ check(lba[0]["achievement_score"] >= lba[1]["achievement_score"], "achievement s
 print("== feeds")
 pr = c["NinerNate"].get(f"{BASE}/api/predictions").json()
 check(all("badges" in p for p in pr) and any(p["username"] == "NinerNate" for p in pr), "predictions feed includes yours")
+
+print("== photos")
+import io  # noqa: E402
+import random  # noqa: E402
+from PIL import Image  # noqa: E402
+rnd = random.Random(1)
+img = Image.new("RGB", (1800, 1200))
+img.putdata([(rnd.randint(0, 255), rnd.randint(0, 255), rnd.randint(0, 255)) for _ in range(1800 * 1200)])
+buf = io.BytesIO()
+img.save(buf, "JPEG", quality=90)
+photo = buf.getvalue()
+r = c["NinerNate"].post(f"{BASE}/api/posts", data={"content": "Photo from the game"},
+                        files={"image": ("game.jpg", photo, "image/jpeg")})
+check(r.ok, f"a normal-size photo ({len(photo) // 1024} KB) can be posted")
+post = next(p for p in requests.get(f"{BASE}/api/posts").json() if p["content"] == "Photo from the game")
+g = requests.get(BASE + post["image_url"])
+check(g.ok and g.headers["Content-Type"] == "image/jpeg", "the photo is served from the database")
+check(max(Image.open(io.BytesIO(g.content)).size) == 1600, "big photos are shrunk to 1600px")
+r = c["NinerNate"].post(f"{BASE}/api/posts", data={"content": "not a picture"},
+                        files={"image": ("fake.jpg", b"hello" * 100, "image/jpeg")})
+check(r.status_code == 400, "a file that isn't an image is refused")
+check(requests.get(f"{BASE}/uploads/../Backend/db.py").status_code == 404, "only real picture names are served")
+r = c["NinerNate"].post(f"{BASE}/api/messages/GoldDigger", json={"body": "x" * 70000})
+check(r.status_code == 413, "other routes still refuse requests over 64 KB")
+stats = requests.get(f"{BASE}/api/stats").json()
+check(stats["players"] >= 6 and "picks" in stats, "homepage stats are public")
 
 print("\nFAILURES:", fails)
 
