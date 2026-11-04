@@ -576,7 +576,7 @@ async function refresh() {
       );
   }
   $("postForm").hidden = $("predForm").hidden = !me;
-  $("postsHint").hidden = $("predHint").hidden = !!me;
+  $("postHint").hidden = $("predHint").hidden = !!me;
 
   // Global/Following toggle only makes sense when logged in
   $("postView").hidden = !me;
