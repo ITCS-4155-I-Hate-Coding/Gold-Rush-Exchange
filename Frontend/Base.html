@@ -15,19 +15,41 @@
       .brand {
         cursor: pointer;
       }
-      #landing .lp-hero {
-        display: grid;
-        grid-template-columns: 1.1fr 0.9fr;
-        gap: 3rem;
-        align-items: center;
-        padding: 3rem 0 3rem;
+      #landing {
+        padding-bottom: 3rem;
+        overflow-x: clip; /* the glow behind the games card mustn't widen the page on phones */
+      }
+      #landing .lp-wrap {
+        max-width: var(--page);
+        margin: 0 auto;
+        padding: 0 var(--gutter);
       }
       #landing h1 {
         margin: 0 0 1.1rem;
         font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
         font-weight: 700;
-        font-size: clamp(2.8rem, 7vw, 4.7rem);
-        line-height: 0.98;
+        font-size: clamp(2.9rem, 6.5vw, 5rem);
+        line-height: 0.95;
+      }
+      #landing h1 span {
+        color: var(--gold);
+      }
+      #landing h2 {
+        font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+        margin: 0 0 0.5rem;
+      }
+      #landing .lp-btn {
+        padding: 0.8rem 1.6rem;
+        font-size: 1.05rem;
+      }
+
+      /* hero: words on the left, this week's games on the right */
+      #landing .lp-hero {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: clamp(2rem, 5vw, 4rem);
+        align-items: center;
+        padding: clamp(2rem, 6vw, 4.5rem) 0 2.5rem;
       }
       #landing .lp-lede {
         color: var(--muted);
@@ -40,52 +62,106 @@
         gap: 0.7rem;
         flex-wrap: wrap;
       }
-      #landing .lp-btn {
-        display: inline-block;
-        text-decoration: none;
-        padding: 0.8rem 1.8rem;
-        font-size: 1.1rem;
-      }
       #landing .lp-note {
-        margin-top: 1rem;
+        margin: 1rem 0 0;
         font-size: 0.9rem;
         color: var(--muted);
       }
-
-      #landing .lp-tile {
+      #landing .lp-board {
+        position: relative;
         background: var(--bg-card);
         border: 1px solid var(--line);
         border-top: 3px solid var(--gold);
-        border-radius: 8px;
-        padding: 1.2rem;
-        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+        border-radius: 10px;
+        padding: 1.1rem 1.2rem 1.2rem;
+        box-shadow:
+          0 30px 80px rgba(0, 0, 0, 0.5),
+          0 0 0 1px rgba(212, 175, 90, 0.05);
       }
-      #landing .lp-tile-top {
+      #landing .lp-board::before {
+        content: "";
+        position: absolute;
+        inset: -40px -30px auto auto;
+        width: 220px;
+        height: 220px;
+        background: radial-gradient(circle, rgba(212, 175, 90, 0.16), transparent 70%);
+        z-index: -1;
+      }
+      #landing .lp-board-head {
         display: flex;
-        justify-content: space-between;
-        font-size: 0.82rem;
-        color: var(--muted);
-        margin-bottom: 0.9rem;
-      }
-      #landing .lp-sport {
+        align-items: center;
+        gap: 0.5rem;
         font-weight: 700;
-        color: var(--gold);
-        letter-spacing: 0.07em;
-        text-transform: uppercase;
+        margin-bottom: 0.8rem;
+      }
+      #landing .lp-board-head .meta {
+        margin: 0 0 0 auto;
+      }
+      #landing .live-dot {
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 50%;
+        background: var(--win);
+        box-shadow: 0 0 0 4px rgba(25, 195, 125, 0.18);
+      }
+      #landing .lp-game {
+        padding: 0.65rem 0;
+        border-top: 1px solid var(--line-soft);
+      }
+      #landing .lp-game-meta {
+        display: flex;
+        gap: 0.6rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-bottom: 0.4rem;
+      }
+      #landing .lp-teams {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 0.5rem;
+        align-items: center;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+      #landing .lp-team {
+        background: var(--bg-raised);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0.5rem 0.6rem;
+        color: var(--ink);
+        font:
+          700 1.05rem "Barlow Condensed",
+          sans-serif;
+        cursor: pointer;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      #landing .lp-team:hover {
+        border-color: var(--gold);
+      }
+      #landing .lp-team[aria-pressed="true"] {
+        border-color: var(--green);
+        background: rgba(21, 185, 129, 0.14);
+        color: var(--win);
+      }
+      #landing .lp-stake {
+        border-top: 1px solid var(--line-soft);
+        padding-top: 0.8rem;
       }
       #landing .lp-wagers {
         display: flex;
         gap: 0.5rem;
-        margin-bottom: 0.8rem;
+        margin-bottom: 0.7rem;
       }
       #landing .lp-out {
         min-height: 1.6em;
-        margin: 0;
+        margin: 0 0 0.6rem;
         font-size: 0.95rem;
         color: var(--muted);
         font-variant-numeric: tabular-nums;
       }
-      #landing .lp-out .w {
+      #landing .lp-out .w, #landing .lp-board .w {
         color: var(--win);
         font-weight: 700;
       }
@@ -94,125 +170,189 @@
         font-weight: 700;
       }
 
-      #landing .lp-sec {
-        padding: 3rem 0;
-        border-top: 1px solid var(--line);
+      /* live numbers under the hero */
+      #landing .lp-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--bg-raised);
+        margin-bottom: 1rem;
       }
-      #landing .lp-sec h2 {
-        font-size: 2.2rem;
-        margin: 0 0 0.5rem;
+      #landing .lp-stats div {
+        padding: 1rem 1.2rem;
+        border-left: 1px solid var(--line);
+      }
+      #landing .lp-stats div:first-child {
+        border-left: 0;
+      }
+      #landing .lp-stats b {
+        display: block;
+        font:
+          700 2rem "Barlow Condensed",
+          sans-serif;
+        color: var(--gold-soft);
+        font-variant-numeric: tabular-nums;
+      }
+      #landing .lp-stats span {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      #landing .lp-sec {
+        padding: 3.5rem 0 1rem;      
       }
       #landing .lp-sub {
         color: var(--muted);
         margin: 0 0 2rem;
         max-width: 38rem;
       }
+      /* four numbered steps joined by a line */
       #landing .lp-steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 1rem;
         counter-reset: s;
       }
-      #landing .lp-step {
+      #landing .lp-steps li {
+        position: relative;
         background: var(--bg-card);
         border: 1px solid var(--line);
-        border-left: 3px solid var(--green);
-        border-radius: 6px;
+        border-radius: 8px;
         padding: 1.2rem;
       }
-      #landing .lp-step::before {
+      #landing .lp-steps li::before {
         counter-increment: s;
         content: counter(s);
+        display: grid;
+        place-items: center;
+        width: 2.3rem;
+        height: 2.3rem;
+        margin-bottom: 0.8rem;
+        border-radius: 50%;
+        background: var(--green-deep);
+        border: 1px solid var(--green);
+        color: var(--win);
         font:
-          700 2.2rem "Barlow Condensed",
+          700 1.2rem "Barlow Condensed",
           sans-serif;
-        color: var(--gold);
       }
-      #landing .lp-step h3,
-      #landing .lp-f h3 {
-        margin: 0.1rem 0 0.3rem;
+      #landing .lp-steps h3,
+      #landing .lp-copy h2 {
+        margin: 0 0 0.3rem;      
         font:
           700 1.4rem "Barlow Condensed",
           sans-serif;
       }
-      #landing .lp-step p,
-      #landing .lp-f p {
+      #landing .lp-copy h2 {
+        font-size: clamp(1.7rem, 3vw, 2.2rem);
+      }
+      #landing .lp-steps p,
+      #landing .lp-copy p {
         margin: 0;
         color: var(--muted);
-        font-size: 0.97rem;
       }
-      #landing .lp-feat {
+
+      /* feature rows: words on one side, a small live preview on the other */
+      #landing .lp-row {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
+        grid-template-columns: 1fr 1fr;
+        gap: clamp(1.5rem, 5vw, 4rem);
+        align-items: center;
+        padding: 2.5rem 0;
+        border-top: 1px solid var(--line-soft);
       }
-      #landing .lp-f {
-        display: flex;
-        gap: 1rem;
+      #landing .lp-row.flip .lp-copy {
+        order: 2;
+      }
+      #landing .lp-copy p {
+        margin-bottom: 1.2rem;
+        max-width: 30rem;
+      }
+      #landing .lp-visual {
         background: var(--bg-card);
         border: 1px solid var(--line);
-        border-radius: 6px;
-        padding: 1.1rem;
+        border-radius: 10px;
+        padding: 1rem;
+        min-height: 12rem;
       }
-      #landing .lp-f svg {
-        flex: none;
-        width: 44px;
-        height: 44px;
-      }
-      #landing .lp-tiers {
+      #landing .lp-chat {
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
         gap: 0.5rem;
-        margin-top: 1.4rem;
       }
-      #landing .lp-tp {
-        font-size: 0.78rem;
-        font-weight: 700;
-        padding: 0.15rem 0.7rem;
+      #landing .lp-chat .note {
+        align-self: center;
+        font-size: 0.82rem;
+        color: var(--gold-soft);
+        border: 1px solid rgba(212, 175, 90, 0.35);
+        background: rgba(212, 175, 90, 0.1);
         border-radius: 999px;
-        border: 1px solid;
+        padding: 0.25rem 0.8rem;
+        margin-top: 0.4rem;
       }
-      #landing .t1 {
-        color: #e8955a;
-        background: rgba(232, 149, 90, 0.14);
-        border-color: rgba(232, 149, 90, 0.5);
+      #landing .lp-badges {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.8rem 0.5rem;
+        text-align: center;
+        font-size: 0.8rem;
+        color: var(--muted);
       }
-      #landing .t2 {
-        color: #cfd8e1;
-        background: rgba(207, 216, 225, 0.12);
-        border-color: rgba(207, 216, 225, 0.5);
+      #landing .lp-badges div {
+        display: grid;
+        justify-items: center;
+        gap: 0.3rem;
       }
-      #landing .t3 {
-        color: #ffc93c;
-        background: rgba(255, 201, 60, 0.15);
-        border-color: rgba(255, 201, 60, 0.5);
-      }
-      #landing .t4 {
-        color: #c4b5ff;
-        background: rgba(196, 181, 255, 0.14);
-        border-color: rgba(196, 181, 255, 0.5);
-      }
-      #landing .t5 {
-        color: #5fdcff;
-        background: rgba(95, 220, 255, 0.15);
-        border-color: rgba(95, 220, 255, 0.5);
-      }
+
       #landing .lp-final {
         text-align: center;
+        margin-top: 2rem;
+        padding: 3rem 1.5rem;
+        border-radius: 12px;
+        border: 1px solid rgba(212, 175, 90, 0.3);
+        background:
+          radial-gradient(600px 200px at 50% 0%, rgba(212, 175, 90, 0.14), transparent 70%),
+          var(--bg-raised);
       }
       #landing .lp-final .lp-sub {
-        margin-left: auto;
-        margin-right: auto;
+        margin: 0 auto 1.5rem;
       }
-      @media (max-width: 820px) {
-        #landing .lp-hero {
+
+      @media (max-width: 900px) {
+        #landing .lp-hero,
+        #landing .lp-row {
           grid-template-columns: 1fr;
-          gap: 2rem;
-          padding: 2rem 0;
         }
+        #landing .lp-row.flip .lp-copy {
+          order: 0;
+        }
+        #landing .lp-steps {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 560px) {
         #landing .lp-steps,
-        #landing .lp-feat {
-          grid-template-columns: 1fr;
+        #landing .lp-stats {
+          grid-template-columns: 1fr 1fr;
+        }
+        #landing .lp-stats div:nth-child(3) {
+          border-left: 0;
+        }
+        #landing .lp-stats div:nth-child(n + 3) {
+          border-top: 1px solid var(--line);
+        }
+        #landing .lp-steps li {
+          padding: 1rem;
+        }
+        #landing .lp-steps h3 {
+          font-size: 1.2rem;
+        }
+        #landing .lp-steps p {
+          font-size: 0.9rem;      
         }
       }
     </style>
@@ -240,6 +380,7 @@
           <button class="tab" data-tab="profile" id="profileTab" hidden>
             Profile
           </button>
+          <button class="tab" data-tab="about">About</button>
         </nav>
         <div class="auth">
           <div class="notif-wrap">
@@ -293,259 +434,132 @@
 
     <!-- ===== HOMEPAGE ===== -->
     <div id="landing">
-      <div class="topbar-inner" style="display: block">
-        <div class="lp-hero">
+      <div class="lp-wrap">
+        <section class="lp-hero">
           <div>
-            <h1>Call the game. Stake your rep.</h1>
+            <p class="kicker">Charlotte's prediction exchange</p>
+            <h1>Call the game.<br /><span>Stake your rep.</span></h1>
             <p class="lp-lede">
-              The prediction exchange for Charlotte sports. Pick winners in
-              49ers football and college hoops, wager reputation, and climb the
-              leaderboard.
+              Pick winners in 49ers football and college hoops, back your calls
+              with reputation, and climb the leaderboard against the rest of
+              campus.      
             </p>
             <div class="lp-cta">
               <button type="button" class="btn btn-gold lp-btn" id="lpStart">
                 Start predicting
               </button>
-              <a class="btn btn-outline lp-btn" href="#lpHow">How it works</a>
+              <button type="button" class="btn btn-outline lp-btn" data-go="about">
+                How it works
+              </button>
             </div>
             <p class="lp-note">
-              Sign up with your @charlotte.edu email. No real money, only
-              reputation.
+              Free with your @charlotte.edu email · No real money, only
+              reputation
             </p>
           </div>
 
-          <div class="lp-tile" aria-label="Try a sample prediction">
-            <div class="lp-tile-top">
-              <span class="lp-sport">Basketball</span><span>Sample game</span>
+          <div class="lp-board" aria-label="Try a pick on this week's games">
+            <div class="lp-board-head">
+              <span class="live-dot" aria-hidden="true"></span> Up next
+              <span class="meta" id="lpBoardNote"></span>
             </div>
-            <div
-              class="pick-grid"
-              role="group"
-              aria-label="Pick a winner"
-              style="
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 0.6rem;
-                margin-bottom: 1rem;
-              "
-            >
-              <button
-                type="button"
-                class="pick-btn lp-pick"
-                aria-pressed="false"
-                data-team="Charlotte"
-              >
-                <small>Away</small>Charlotte
-              </button>
-              <button
-                type="button"
-                class="pick-btn lp-pick"
-                aria-pressed="false"
-                data-team="Opponent"
-              >
-                <small>Home</small>Opponent
+            <div id="lpGames"></div>
+            <div class="lp-stake">
+              <div class="lp-wagers" role="group" aria-label="Wager">
+                <button type="button" class="chip lp-chip" aria-pressed="false" data-n="10">10</button>
+                <button type="button" class="chip lp-chip" aria-pressed="false" data-n="25">25</button>
+                <button type="button" class="chip lp-chip" aria-pressed="false" data-n="50">50</button>
+                <button type="button" class="chip lp-chip" aria-pressed="false" data-n="100">100</button>
+              </div>
+              <p class="lp-out" id="lpOut" aria-live="polite">
+                Pick a team, then a wager.
+              </p>
+              <button type="button" class="btn btn-gold" id="lpMake" hidden>
+                Make this pick
               </button>
             </div>
-            <div class="lp-wagers" role="group" aria-label="Wager">
-              <button
-                type="button"
-                class="chip lp-chip"
-                aria-pressed="false"
-                data-n="10"
-              >
-                10
-              </button>
-              <button
-                type="button"
-                class="chip lp-chip"
-                aria-pressed="false"
-                data-n="25"
-              >
-                25
-              </button>
-              <button
-                type="button"
-                class="chip lp-chip"
-                aria-pressed="false"
-                data-n="50"
-              >
-                50
-              </button>
-            </div>
-            <p class="lp-out" id="lpOut" aria-live="polite">
-              Pick a team and a wager to see the stakes.
-            </p>
           </div>
+        </section>
+
+        <div class="lp-stats" aria-label="Exchange totals">
+          <div><b data-stat="players">–</b><span>players</span></div>
+          <div><b data-stat="picks">–</b><span>picks made</span></div>
+          <div><b data-stat="rep_wagered">–</b><span>rep wagered</span></div>
+          <div><b data-stat="games_this_week">–</b><span>games this week</span></div>              
         </div>
 
         <section class="lp-sec" id="lpHow">
           <h2>How it works</h2>
-          <p class="lp-sub">
-            Every player starts with reputation. What you do with it is up to
-            you.
-          </p>
-          <div class="lp-steps">
-            <div class="lp-step">
+          <p class="lp-sub">Four steps from sign-up to the top of the board.</p>
+          <ol class="lp-steps">
+            <li>
+              <h3>Sign up</h3>
+              <p>Use your @charlotte.edu email. Everyone starts with 1,000 rep.</p>
+            </li>
+            <li>
               <h3>Pick a winner</h3>
-              <p>
-                Browse upcoming football and basketball games, filter by
-                Charlotte or the Top 25, and choose a side.
-              </p>
-            </div>
-            <div class="lp-step">
-              <h3>Wager reputation</h3>
-              <p>
-                Stake any amount you hold. Win and you gain it. Lose and it's
-                gone.
-              </p>
-            </div>
-            <div class="lp-step">
+              <p>Browse the week's football and basketball games and choose a side.</p>
+            </li>
+            <li>
+              <h3>Wager rep</h3>
+              <p>Right doubles your wager back. Wrong loses it. Ties are refunded.</p>
+            </li>
+            <li>
               <h3>Climb the board</h3>
-              <p>
-                Games settle automatically. Watch your rank, accuracy and record
-                update.
-              </p>
-            </div>
-          </div>
+              <p>Games settle on their own. Watch your rank, record and badges grow.</p>
+            </li>
+          </ol>
         </section>
 
         <section class="lp-sec">
-          <h2>More than a scoreboard</h2>
-          <p class="lp-sub">
-            It's a community. Talk trash, follow sharp pickers and see who
-            really knows the game.
-          </p>
-          <div class="lp-feat">
-            <div class="lp-f">
-              <svg viewBox="0 0 48 48" aria-hidden="true">
-                <polygon
-                  points="24,2 43,13 43,35 24,46 5,35 5,13"
-                  fill="#d4af5a"
-                />
-                <polygon
-                  points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75"
-                  fill="rgba(6,14,11,.5)"
-                />
-                <g
-                  transform="translate(14 14) scale(.8333)"
-                  fill="none"
-                  stroke="#fff"
-                  stroke-width="2.1"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path
-                    d="M12 3c.8 3.6 5 5.2 5 10.2a5 5 0 0 1-10 0c0-2.4 1.3-3.6 2-5.2.9 1.4 1.6 2 2.6 2.2C11.4 8.3 11 5.8 12 3z"
-                  />
-                </g>
-              </svg>
-              <div>
-                <h3>Achievements and badges</h3>
-                <p>
-                  Earn badges for streaks, upsets and big wins. Show your
-                  favorites next to your name.
-                </p>
-              </div>
+          <div class="lp-row">
+            <div class="lp-copy">
+              <p class="kicker">Compete</p>
+              <h2>See who really knows the game</h2>
+              <p>
+                The leaderboard ranks every player by reputation or achievement
+                score. Switch to just the people you follow to settle the group
+                chat.
+              </p>
+              <button type="button" class="btn btn-outline" data-go="leaderboard">
+                View leaderboard
+              </button>
             </div>
-            <div class="lp-f">
-              <svg viewBox="0 0 48 48" aria-hidden="true">
-                <polygon
-                  points="24,2 43,13 43,35 24,46 5,35 5,13"
-                  fill="#15b981"
-                />
-                <polygon
-                  points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75"
-                  fill="rgba(6,14,11,.5)"
-                />
-                <g
-                  transform="translate(14 14) scale(.8333)"
-                  fill="none"
-                  stroke="#fff"
-                  stroke-width="2.1"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M3.5 8 8 12.2 12 5l4 7.2L20.5 8 18.8 19H5.2z" />
-                  <path d="M5.2 19h13.6" />
-                </g>
-              </svg>
-              <div>
-                <h3>Leaderboard</h3>
-                <p>
-                  Rank by reputation or achievement score, across everyone or
-                  just your friends.
-                </p>
-              </div>
+            <div class="lp-visual" id="lpLeaders"></div>
+          </div>
+          <div class="lp-row flip">
+            <div class="lp-copy">
+              <p class="kicker">Connect</p>
+              <h2>Talk it over with friends</h2>
+              <p>
+                Post your takes, add a photo and react to everyone else's.
+                Follow each other to unlock private messages.
+              </p>
+              <button type="button" class="btn btn-outline" data-go="posts">
+                Read posts
+              </button>
             </div>
-            <div class="lp-f">
-              <svg viewBox="0 0 48 48" aria-hidden="true">
-                <polygon
-                  points="24,2 43,13 43,35 24,46 5,35 5,13"
-                  fill="#7cc0ff"
-                />
-                <polygon
-                  points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75"
-                  fill="rgba(6,14,11,.5)"
-                />
-                <g
-                  transform="translate(14 14) scale(.8333)"
-                  fill="none"
-                  stroke="#fff"
-                  stroke-width="2.1"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <circle cx="9" cy="8" r="3.2" />
-                  <path d="M3 20c0-3.4 2.7-6 6-6s6 2.6 6 6" />
-                  <circle cx="17" cy="9" r="2.4" />
-                  <path d="M15.8 14.2c2.9.3 5.2 2.6 5.2 5.8" />
-                </g>
-              </svg>
-              <div>
-                <h3>Follow and compare</h3>
-                <p>
-                  Follow other players, peek at their picks and compare stats
-                  side by side.
-                </p>
-              </div>
-            </div>
-            <div class="lp-f">
-              <svg viewBox="0 0 48 48" aria-hidden="true">
-                <polygon
-                  points="24,2 43,13 43,35 24,46 5,35 5,13"
-                  fill="#d3a6ff"
-                />
-                <polygon
-                  points="24,7.5 38.3,15.75 38.3,32.25 24,40.5 9.7,32.25 9.7,15.75"
-                  fill="rgba(6,14,11,.5)"
-                />
-                <g
-                  transform="translate(14 14) scale(.8333)"
-                  fill="none"
-                  stroke="#fff"
-                  stroke-width="2.1"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M4 5h16v11H9.5L5 20v-4H4z" />
-                </g>
-              </svg>
-              <div>
-                <h3>Posts and comments</h3>
-                <p>Share takes on the big game and react to everyone else's.</p>
-              </div>
+            <div class="lp-visual lp-chat" aria-hidden="true">
+              <div class="msg theirs"><div class="msg-bubble">you taking Charlotte on Saturday?</div></div>
+              <div class="msg mine"><div class="msg-bubble">100 rep on it. that defense is legit</div></div>
+              <div class="msg theirs"><div class="msg-bubble">bold. I'm taking the other side</div></div>
+              <div class="note">Achievement unlocked: Heating Up</div>
             </div>
           </div>
-          <div class="lp-tiers" aria-label="Achievement tiers">
-            <span class="lp-tp t1">Bronze</span
-            ><span class="lp-tp t2">Silver</span
-            ><span class="lp-tp t3">Gold</span
-            ><span class="lp-tp t4">Platinum</span
-            ><span class="lp-tp t5">Diamond</span>
+          <div class="lp-row">
+            <div class="lp-copy">
+              <p class="kicker">Collect</p>
+              <h2>Earn badges as you go</h2>
+              <p>
+                Achievements reward streaks, upsets, big wins and being part of
+                the community. Show your three favorites next to your name.
+              </p>
+            </div>
+            <div class="lp-visual lp-badges" id="lpBadges" aria-label="Some of the badges you can earn"></div>
           </div>
         </section>
 
-        <section class="lp-sec lp-final">
+        <section class="lp-final">          
           <h2>Your claim is waiting</h2>
           <p class="lp-sub">Make your first pick before the next tip-off.</p>
           <button type="button" class="btn btn-gold lp-btn" id="lpJoin">
@@ -557,7 +571,66 @@
 
     <main hidden>
       <section id="posts" class="panel">
-        <div class="posts-head">
+        <div class="split">
+          <div>
+            <div class="posts-head">
+              <h2>Posts</h2>
+              <div
+                class="seg"
+                id="postView"
+                role="group"
+                aria-label="Show posts"
+                hidden
+              ></div>
+              <button type="button" data-v="global" aria-pressed="true">
+                Global
+              </button>
+              <button type="button" data-v="following" aria-pressed="false">
+                Following
+              </button>
+            </div>
+          </div>
+          <form id="postForm" class="card" hidden>
+            <textarea
+              id="postBody"
+              placeholder="Share something with the exchange"
+              rows="3"
+            ></textarea>
+            <div id="postImagePreview" class="post-preview" hidden>
+              <img
+                id="postImageThumb"
+                alt="Preview of the photo you are about to post"
+              />
+              <button
+                type="button"
+                id="postImageRemove"
+                class="preview-remove"
+                aria-label="Remove photo"
+              >
+                x
+              </button>
+            </div>
+            <div class="post-actions">
+              <button class="btn">Post</button>
+              <input
+                type="file"
+                id="postImage"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                hidden
+              />
+              <button type="button" class="btn btn-outline" id="postImageBtn">
+                Add photo
+              </button>
+              <p class="rep-hint">Posts earn +5 rep (3 a day) · comments on others' posts +2 (10 a day) · each like you get +1 (20 a day)</p>
+          
+            </div>
+          </form>
+          <p class="hint" id="postHint">Log in to write a post.</p>
+          <div id="postList"></div>
+        </div>
+        <aside class="side-stack sticky-side" id="postsSide"></aside>
+      </div>
+        <!-- <div class="posts-head">
           <h2>Posts</h2>
           <div
             class="seg"
@@ -581,8 +654,18 @@
             rows="3"
           ></textarea>
           <div id="postImagePreview" class="post-preview" hidden>
-            <img id="postImageThumb" alt="Preview of the photo you are about to post" />
-            <button type="button" id="postImageRemove" class="preview-remove" aria-label="Remove photo">×</button>
+            <img
+              id="postImageThumb"
+              alt="Preview of the photo you are about to post"
+            />
+            <button
+              type="button"
+              id="postImageRemove"
+              class="preview-remove"
+              aria-label="Remove photo"
+            >
+              ×
+            </button>
           </div>
           <div class="post-actions">
             <button class="btn">Post</button>
@@ -592,7 +675,9 @@
               accept="image/jpeg,image/png,image/gif,image/webp"
               hidden
             />
-            <button type="button" class="btn btn-outline" id="postImageBtn">Add photo</button>
+            <button type="button" class="btn btn-outline" id="postImageBtn">
+              Add photo
+            </button>
             <p class="rep-hint">
               Posts earn +5 rep (3 a day) · comments on others' posts +2 (10 a
               day) · each like you get +1 (20 a day)
@@ -600,7 +685,7 @@
           </div>
         </form>
         <p class="hint" id="postsHint">Log in to write a post.</p>
-        <div id="postList"></div>
+        <div id="postList"></div> -->
       </section>
 
       <section id="predictions" class="panel" hidden>
@@ -699,7 +784,25 @@
             </button>
           </div>
         </div>
-        <div class="card">
+        <div class="split side-left">
+          <div>
+            <div class="card">
+              <input
+                type="search"
+                id="userSearch"
+                placeholder="Search usernames to follow"
+                autocomplete="off"
+              />
+              <div id="searchResults"></div>
+            </div>
+            <div id="followingBody"></div>
+          </div>
+          <div>
+            <h3 class="section-title">Their activity</h3>
+            <div id="followFeed"></div>
+          </div>
+        </div>
+        <!-- <div class="card">
           <input
             id="userSearch"
             type="search"
@@ -708,7 +811,7 @@
           />
           <div id="searchResults"></div>
         </div>
-        <div id="followingBody"></div>
+        <div id="followingBody"></div> -->
       </section>
 
       <section id="messages" class="panel" hidden>
@@ -735,7 +838,224 @@
       <section id="profile" class="panel" hidden>
         <div id="profileBody"></div>
       </section>
+
+      <section id="about" class="panel" hidden>
+        <div class="about-hero">
+          <p class="kicker">About</p>
+          <h2>A social prediction exchange built for Niner Nation</h2>
+          <p class="about-lede">
+            Gold Rush Exchange is a social sports-prediction site for UNC
+            Charlotte students. Pick winners in college football and basketball,
+            back your picks with reputation points, and see who really knows the
+            game. There's no real money involved, only bragging rights.
+          </p>
+          <div class="about-facts">
+            <span>Free to join</span>
+            <span>@charlotte.edu accounts only</span>
+            <span>No real money</span>
+            <!-- <span>Scores update every 15 minutes</span> -->
+          </div>
+        </div>
+
+        <div class="about-grid">
+          <div class="card about-card">
+            <h3>How reputation works</h3>
+            <ol class="about-steps">
+              <li>
+                <b>Start with 1,000 rep.</b> Everyone gets the same bankroll.
+              </li>
+              <li>
+                <b>Wager on a pick.</b> Choose a side before the game starts and
+                stake any amount you have. One pick per game.
+              </li>
+              <li>
+                <b>Right?</b> You get your wager back twice: stake 100, get 200.
+              </li>
+              <li><b>Wrong?</b> The wager is gone.</li>
+              <li><b>Tie or cancelled game?</b> Your wager is refunded.</li>
+              <li>
+                <b>Ran out?</b> Below 50 rep with no open picks, you're topped
+                back up to 50 (once a day).
+              </li>
+            </ol>
+          </div>
+          <div class="card about-card">
+            <h3>Example</h3>
+            <div class="ex-row"><span>Starting balance</span><b>1,000</b></div>
+            <div class="ex-row">
+              <span>Wager 100 on Charlotte</span><b class="l">−100</b>
+            </div>
+            <div class="ex-row">
+              <span>Charlotte wins: wager back ×2</span><b class="w">+200</b>
+            </div>
+            <div class="ex-row total"><span>New balance</span><b>1,100</b></div>
+            <p class="meta">
+              If Charlotte had lost, the balance would stay at 900.
+            </p>
+          </div>
+        </div>
+
+        <h3 class="section-title about-h">Earn rep by taking part</h3>
+        <div class="about-earn">
+          <div class="earn">
+            <b>+5</b><span>per post</span
+            ><small>up to 3 a day · 15+ characters</small>
+          </div>
+          <div class="earn">
+            <b>+2</b><span>per comment</span
+            ><small>up to 10 a day · on someone else's post</small>
+          </div>
+          <div class="earn">
+            <b>+1</b><span>per like you get</span
+            ><small>up to 20 a day · from other people</small>
+          </div>
+        </div>
+        <p class="meta">
+          Community rep is kept small on purpose, so posting can't replace
+          predicting.
+        </p>
+
+        <h3 class="section-title about-h">What you can do</h3>
+        <div class="about-features">
+          <div class="feat">
+            <h4>Predictions</h4>
+            <p>
+              Browse the week's games, filter by Charlotte or the Top 25, and
+              make your pick.
+            </p>
+            <button type="button" class="btn btn-outline" data-go="predictions">
+              See games
+            </button>
+          </div>
+          <div class="feat">
+            <h4>Leaderboard</h4>
+            <p>
+              Rank everyone, or just the people you follow, by rep or
+              achievement score.
+            </p>
+            <button type="button" class="btn btn-outline" data-go="leaderboard">
+              See rankings
+            </button>
+          </div>
+          <div class="feat">
+            <h4>Posts</h4>
+            <p>
+              Share takes on the big game, attach a photo, and like or comment
+              on others'.
+            </p>
+            <button type="button" class="btn btn-outline" data-go="posts">
+              Read posts
+            </button>
+          </div>
+          <div class="feat">
+            <h4>Messages</h4>
+            <p>
+              Chat privately with friends: people you follow who follow you
+              back.
+            </p>
+            <button type="button" class="btn btn-outline" data-go="messages">
+              Open messages
+            </button>
+          </div>
+          <div class="feat">
+            <h4>Compare</h4>
+            <p>
+              Put your record next to up to five friends and see who's really
+              sharper.
+            </p>
+            <button type="button" class="btn btn-outline" data-go="compare">
+              Compare
+            </button>
+          </div>
+          <div class="feat">
+            <h4>Achievements</h4>
+            <p>
+              Earn badges for streaks, upsets and big wins, and show three next
+              to your name.
+            </p>
+            <button type="button" class="btn btn-outline" data-go="profile">
+              My achievements
+            </button>
+          </div>
+        </div>
+
+        <h3 class="section-title about-h">Achievement tiers</h3>
+        <div class="card about-tiers">
+          <p class="meta" id="aboutAchText">
+            Achievements come in five tiers. Harder ones are worth more points
+            toward your achievement score.
+          </p>
+          <div class="tier-key" id="aboutTiers"></div>
+        </div>
+
+        <h3 class="section-title about-h">Questions</h3>
+        <div class="faq">
+          <details>
+            <summary>Is any real money involved?</summary>
+            <p>No. Reputation points can't be bought, sold or cashed out.</p>
+          </details>
+          <details>
+            <summary>Who can join?</summary>
+            <p>Anyone with a @charlotte.edu email address.</p>
+          </details>
+          <details>
+            <summary>Where do the games and scores come from?</summary>
+            <p>
+              ESPN's public scoreboard for FBS college football and men's
+              college basketball. The site checks for new games and final scores
+              every 15 minutes and settles picks automatically.
+            </p>
+          </details>
+          <details>
+            <summary>When do picks close?</summary>
+            <p>When the game is scheduled to start.</p>
+          </details>
+          <details>
+            <summary>Who can message me?</summary>
+            <p>
+              Only friends: people you follow who also follow you back. If
+              either of you unfollows, the old messages stay but no new ones can
+              be sent.
+            </p>
+          </details>
+          <details>
+            <summary>How is my account protected?</summary>
+            <p>
+              Passwords are stored as bcrypt hashes, never as plain text, and
+              too many wrong passwords locks the login for 15 minutes.
+            </p>
+          </details>
+        </div>
+
+        <h3 class="section-title about-h">The team</h3>
+        <div class="about-team">
+          <div class="member">
+            <span class="avatar big" aria-hidden="true">W</span>
+            <div><b>William Rodgers</b><span>Project Manager</span></div>
+          </div>
+          <div class="member">
+            <span class="avatar big" aria-hidden="true">J</span>
+            <div><b>Jacob Ware</b><span>Scrum Master</span></div>
+          </div>
+          <div class="member">
+            <span class="avatar big" aria-hidden="true">A</span>
+            <div><b>Anson Jiang</b><span>Developer</span></div>
+          </div>
+        </div>
+        <p class="meta">
+          A senior capstone project for ITSC 4155 at UNC Charlotte. Built with
+          Flask, PostgreSQL and JavaScript, with game data from ESPN.
+        </p>
+      </section>
     </main>
+
+    <footer class="site-foot">
+      <span
+        >Gold Rush Exchange · a UNC Charlotte capstone project · no real
+        money</span
+      >
+      <button type="button" class="btn btn-link" data-go="about">About</button>
+    </footer>
 
     <dialog id="authDialog">
       <form id="authForm">
@@ -829,33 +1149,8 @@
     <!-- Homepage behavior (kept separate so Base.js stays unchanged) -->
     <script>
       (function () {
-        // const landing = document.getElementById("landing");
-        // const main = document.querySelector("main");
         const authBtn = document.getElementById("authBtn");
-        // const showApp = () => {
-        //   landing.hidden = true;
-        //   main.hidden = false;
-        // };
-        // const showHome = () => {
-        //   landing.hidden = false;
-        //   main.hidden = true;
-        //   document
-        //     .querySelectorAll(".tab")
-        //     .forEach((t) =>
-        //       t.classList.toggle("active", t.dataset.tab === "home")
-        //     );
-        //   window.scrollTo(0, 0);
-        // };
 
-        // // Home tab shows the homepage; every other tab opens the app.
-        // // The homepage stays up until a tab is chosen, so logging in does not hide it.
-        // document
-        //   .querySelectorAll(".tab")
-        //   .forEach((t) =>
-        //     t.addEventListener("click", () =>
-        //       t.dataset.tab === "home" ? showHome() : showApp()
-        //     )
-        //   );
         const brand = document.getElementById("brandHome");
         const showHome = () => showTab("home");
         brand.addEventListener("click", showHome);
@@ -865,40 +1160,187 @@
 
         // call-to-action buttons: logged out -> open login (stay on home); logged in -> go to Predictions
         const start = () => {
-          if (authBtn.textContent.trim() === "Log in") authBtn.click();
+          // if (authBtn.textContent.trim() === "Log in") authBtn.click();
+          if (!me) authBtn.click();
           else document.querySelector('.tab[data-tab="predictions"]').click();
         };
         document.getElementById("lpStart").addEventListener("click", start);
         document.getElementById("lpJoin").addEventListener("click", start);
 
-        // sample pick tile
-        let team = null,
-          n = 0;
+        // the next few games showing on the home
+        const SAMPLE = [
+          {
+            id: null,
+            sport: "basketball",
+            away_team: "Charlotte",
+            home_team: "Opponent",
+            start_time: null
+          }
+        ];
+        let games = SAMPLE;
+        let choice = null;
+        let wager = 0;
         const out = document.getElementById("lpOut");
-        const draw = () => {
-          out.innerHTML =
-            team && n
-              ? `You pick <b>${team}</b> · Win <b class="w">+${n}</b> · Lose <b class="l">-${n}</b> rep`
-              : "Pick a team and a wager to see the stakes.";
-        };
-        document.querySelectorAll(".lp-pick").forEach((b) =>
-          b.addEventListener("click", () => {
-            team = b.dataset.team;
-            document
-              .querySelectorAll(".lp-pick")
-              .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-            draw();
-          })
-        );
+        const make = document.getElementById("lpMake");
+
+        function drawGames() {
+          document.getElementById("lpGames").innerHTML = games
+            .map(
+              (g, i) => `
+            <div class = "lp-game">
+              <div class = "lp-game-meta">
+                <span class="sport ${esc(g.sport)}">${esc(g.sport)}</span>
+                <span>${g.start_time ? fmtWhen(g.start_time) : "Sample game"}</span>
+              </div>
+              <div class="lp-teams">
+                <button type="button" class="lp-team" data-i="${i}" data-side="away" aria-pressed="false">${esc(g.away_team)}</button>
+                <span>@</span>
+                <button type="button" class="lp-team" data-i="${i}" data-side="home" aria-pressed="false">${esc(g.home_team)}</button>
+              </div>
+            </div>`
+            )
+            .join("");
+        }
+
+        function drawStakes() {
+          if (!choice || !wager) {
+            out.textContent = choice
+              ? "Now pick a wager"
+              : "Pick a team, then a wager.";
+            make.hidden = true;
+            return;
+          }
+          const team = choice.game[`${choice.side}_team`];
+          out.innerHTML = `${esc(team)} · win <b class="w">+${wager}</b> · lose <b class="l">−${wager}</b> rep`;
+          make.hidden = false;
+          make.textContent = me
+            ? "Make this pick"
+            : "Sign up to make this pick";
+        }
+
+        document.getElementById("lpGames").addEventListener("click", (e) => {
+          const b = e.target.closest(".lp-team");
+          if (!b) return;
+          choice = { game: games[b.dataset.i], side: b.dataset.side };
+          document
+            .querySelectorAll(".lp-team")
+            .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+          drawStakes();
+        });
         document.querySelectorAll(".lp-chip").forEach((b) =>
           b.addEventListener("click", () => {
-            n = Number(b.dataset.n);
+            wager = Number(b.dataset.n);
             document
               .querySelectorAll(".lp-chip")
               .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-            draw();
+            drawStakes();
           })
         );
+        // opens the real prediction dialog with the same team and wager filled in
+        make.addEventListener("click", () => {
+          if (!me || !choice.game.id) return start();
+          openPredict(choice.game);
+          document
+            .querySelector(`.pick-btn[data-pick="${choice.side}"]`)
+            .click();
+          $("predPoints").value = Math.min(wager, me.reputation);
+          updateOutcome();
+        });
+
+        // ---- live numbers, the top of the leaderboard, and some badges ----
+        async function loadLanding() {
+          const [list, stats, leaders] = await Promise.all([
+            api("/api/games").catch(() => []),
+            api("/api/stats").catch(() => null),
+            api("/api/leaderboard").catch(() => [])
+          ]);
+          const upcoming = list
+            .filter(
+              (g) =>
+                g.status === "scheduled" && new Date(g.start_time) > new Date()
+            )
+            .slice(0, 3);
+          if (upcoming.length) games = upcoming;
+          document.getElementById("lpBoardNote").textContent = upcoming.length
+            ? "real games"
+            : "no games scheduled";
+          drawGames();
+
+          if (stats)
+            document.querySelectorAll("[data-stat]").forEach((el) => {
+              el.textContent = fmtNum(stats[el.dataset.stat]);
+            });
+
+          document.getElementById("lpLeaders").innerHTML = leaders.length
+            ? leaders
+                .slice(0, 5)
+                .map(
+                  (u) => `
+              <div class="mini-row">
+                <span class="mini-rank">${u.rank}</span>
+                <span class="avatar sm" aria-hidden="true">${initial(u.username)}</span>
+                <span class="grow">${userLink(u.username, u.badges)}</span>
+                <span class="badge">${fmtNum(u.reputation)} rep</span>
+              </div>`
+                )
+                .join("")
+            : '<p class="hint">Be the first on the board.</p>';
+        }
+
+        function drawBadges() {
+          if (!ACH) return;
+          // one badge from 8 different categories, in rising tiers
+          const tracks = Object.keys(ACH.tracks);
+          const picks = tracks
+            .map((t, i) => {
+              const inTrack = ACH.achievements.filter((a) => a.track === t);
+              return inTrack[Math.min(i % 5, inTrack.length - 1)];
+            })
+            .filter(Boolean)
+            .slice(0, 8);
+          document.getElementById("lpBadges").innerHTML = picks
+            .map(
+              (a) =>
+                `<div>${badgeSvg(a.code, 48)}<span>${esc(a.name)}</span></div>`
+            )
+            .join("");
+        }
+
+        drawGames();
+        loadLanding();
+        appReady.then(() => {
+          drawBadges();
+          drawStakes(); // the button text depends on being logged in
+        });
+
+        // // sample pick tile
+        // let team = null,
+        //   n = 0;
+        // const out = document.getElementById("lpOut");
+        // const draw = () => {
+        //   out.innerHTML =
+        //     team && n
+        //       ? `You pick <b>${team}</b> · Win <b class="w">+${n}</b> · Lose <b class="l">-${n}</b> rep`
+        //       : "Pick a team and a wager to see the stakes.";
+        // };
+        // document.querySelectorAll(".lp-pick").forEach((b) =>
+        //   b.addEventListener("click", () => {
+        //     team = b.dataset.team;
+        //     document
+        //       .querySelectorAll(".lp-pick")
+        //       .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+        //     draw();
+        //   })
+        // );
+        // document.querySelectorAll(".lp-chip").forEach((b) =>
+        //   b.addEventListener("click", () => {
+        //     n = Number(b.dataset.n);
+        //     document
+        //       .querySelectorAll(".lp-chip")
+        //       .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+        //     draw();
+        //   })
+        // );
       })();
     </script>
   </body>
