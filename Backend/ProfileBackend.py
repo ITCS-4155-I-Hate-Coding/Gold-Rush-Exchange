@@ -131,3 +131,18 @@ def get_predictions_by_username(username):
         (user["id"], PAST_LIMIT),
     )
     return {"username": username, "current": current, "past": past}
+
+# adding site stats that can be put on the homepage but will hold off on presenting for now
+
+# def site_stats():
+#     return query(
+#         """
+#         SELECT
+#             (SELECT COUNT(*) FROM users)::int AS players,
+#             (SELECT COUNT(*) FROM predictions)::int AS picks,
+#             (SELECT COALESCE(SUM(points), 0) FROM predictions)::int AS rep_wagered,
+#             (SELECT COUNT(*) FROM games WHERE status = 'scheduled' AND start_time BETWEEN now() AND now() + interval '7 days')::int as games_this_week
+
+#         """,
+#         fetchone=True,
+#     )
