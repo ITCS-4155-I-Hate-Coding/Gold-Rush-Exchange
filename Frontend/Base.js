@@ -57,6 +57,14 @@ async function loadCatalog() {
   try {
     ACH = await api("/api/achievements/catalog");
     ACH_BY_CODE = new Map(ACH.achievements.map((a) => [a.code, a]));
+    // the About page lists the tiers and what each is worth
+    $("aboutAchText").textContent =
+      `There are ${ACH.achievements.length} achievements across ${Object.keys(ACH.tracks).length} categories, ` +
+      "from your first pick to #1 on the leaderboard. Harder ones are worth more toward your achievement score.";
+    $("aboutTiers").innerHTML = TIER_ORDER.map(
+      (t) =>
+        `<span class="tier-pill tier-${t}">${esc(ACH.tiers[t].label)} · ${ACH.tiers[t].value} pts</span>`
+    ).join("");
   } catch {
     // if this fails the site still works: badgeRow() finds nothing in ACH_BY_CODE
     // and draws no badges, and the profile shows "Achievements are unavailable"
@@ -204,6 +212,7 @@ function showUnlocks(codes) {
 // clicking the message opens your own profile and scrolls to the Achievements section
 $("achToast").addEventListener("click", () => {
   $("achToast").hidden = true;
+  achView = "earned";
   openProfile(null, "achievements");
 });
 
@@ -248,7 +257,7 @@ function achCard(item, isMe, featuredCount, showTrack = false) {
   const a = ACH_BY_CODE.get(item.code);
   if (!a) return "";
   const pct = Math.round(achFraction(a, item) * 100);
-  const rarity = `${item.holders_pct}% of players`;
+  // const rarity = `${item.holders_pct}% of players`;
   let action = "";
   if (isMe && item.earned) {
     // aria-pressed makes it a toggle button: "Show" when off, "Showing" when on.
@@ -262,20 +271,19 @@ function achCard(item, isMe, featuredCount, showTrack = false) {
   }
   // earned cards show the date and rarity; locked cards show a progress bar instead
   return `
-    <div class="ach-card ${item.earned ? "earned" : "locked"} tier-${a.tier}">
-      <div class="ach-icon">${badgeSvg(a.code, 52, !item.earned)}</div>
+    <div class="ach-card ${item.earned ? "earned" : "locked"} tier-${a.tier}" title="${esc(a.description)}">
+      <div class="ach-icon">${badgeSvg(a.code, 44, !item.earned)}</div>
       <div class="ach-body">
-        ${showTrack ? `<div class="ach-kicker">${esc(ACH.tracks[a.track].label)}</div>` : ""}
+        <div class="ach-kicker">${showTrack ? `${esc(ACH.tracks[a.track].label)} · ` : ""}<span>${item.holders_pct}% have it</span></div>
         <div class="ach-name">${esc(a.name)}</div>
         <div class="ach-tier"><span class="tier-pill tier-${a.tier}">${esc(a.tier_label)}</span><span class="ach-value">${a.value} pts</span></div>
         <p class="ach-desc">${esc(a.description)}</p>
         ${
           item.earned
-            ? `<div class="ach-earned">Earned ${when(item.earned_at)} · ${rarity}</div>`
+            ? `<div class="ach-foot"><span class="ach-earned">Earned ${shortDate(item.earned_at)}</span>${action}</div>`
             : `<div class="ach-bar" aria-hidden="true"><span style="width:${pct}%"></span></div>
-               <div class="ach-progress">${achProgressText(a, item)} · ${rarity}</div>`
+               <div class="ach-progress">${achProgressText(a, item)}</div>`
         }
-        ${action}
       </div>
     </div>`;
 }
@@ -298,32 +306,35 @@ function renderAchievements(data, isMe) {
     const a = code && ACH_BY_CODE.get(code);
     slots.push(
       a
-        ? `<div class="slot filled" title="${esc(badgeTitle(a))}">${badgeSvg(code, 44)}<span>${esc(a.name)}</span></div>`
+        ? `<div class="slot filled" title="${esc(badgeTitle(a))}">${badgeSvg(code, 32)}<span>${esc(a.name)}</span></div>`
         : `<div class="slot empty">${isMe ? "Empty slot" : ""}</div>`
     );
   }
-  // on someone else's profile the showcase only appears if they chose badges
-  const showcase =
-    isMe || featured.length
-      ? `<div class="showcase">
-           <div class="showcase-label">${
-             isMe
-               ? `Shown next to your name (${featured.length}/${ACH.max_featured}) · pick with <b>Show</b> below`
-               : "Featured badges"
-           }</div>
-           <div class="slots">${slots.join("")}</div>
-           ${achError ? `<p class="error" role="alert">${esc(achError)}</p>` : ""}
-         </div>`
-      : "";
+  return `<div class="showcase">
+      <div class="showcase-label">${
+        isMe
+          ? `Shown next to your name (${featured.length}/${ACH.max_featured})${featured.length < ACH.max_featured ? " · choose them in Achievements → Earned" : ""}`
+          : "Featured badges"
+      }</div>
+      <div class="slots">${slots.join("")}</div>
+      ${achError ? `<p class="error" role="alert">${esc(achError)}</p>` : ""}
+    </div>`;
+}
 
-  // pick which cards to show for the current view, grouped by track.
-  // data.achievements is in catalog order (easiest -> hardest within each track), so the
+// the showcase: the badges that appear next to this user's name, as 3 slots.
+// Empty slots are drawn on your own profile so it's obvious you can fill them.
+function renderShowcase(data, isMe) {
+  if (!ACH || !data) return "";
+  const featured = data.featured;
+  // on someone else's profile the showcase only appears if they chose badges
+  if (!isMe && !featured.length) return "";
   // FIRST locked card met in a track is the next goal.
   const byTrack = new Map();
   const nextShown = new Set(); // tracks whose next locked level is already shown
   for (const item of data.achievements) {
     const a = ACH_BY_CODE.get(item.code);
     if (!a) continue;
+    if (item.earned && achView === "progress") continue;
     if (!item.earned) {
       if (achView === "earned") continue;
       if (achView === "progress") {
@@ -341,7 +352,13 @@ function renderAchievements(data, isMe) {
   const tracks = flat
     ? `<div class="ach-grid">${[...byTrack.values()]
         .flat()
-        .sort((x, y) => Number(y.earned) - Number(x.earned)) // earned first, then next goals
+        // next goals: closest to done first. earned: newest first
+        .sort((x, y) =>
+          achView === "progress"
+            ? achFraction(ACH_BY_CODE.get(y.code), y) -
+              achFraction(ACH_BY_CODE.get(x.code), x)
+            : new Date(y.earned_at) - new Date(x.earned_at)
+        )
         .map((i) => achCard(i, isMe, featured.length, true))
         .join("")}</div>`
     : [...byTrack]
@@ -362,14 +379,7 @@ function renderAchievements(data, isMe) {
   // (which explains the colours and what each tier is worth)
   const pct = Math.round((data.earned_count / data.total_count) * 100);
   return `
-    <div class="ach-head">
-      <h3 class="section-title" id="achievements-title">Achievements</h3>
-      <div class="seg" id="achView" role="group" aria-label="Show achievements">
-        <button type="button" data-v="progress" aria-pressed="${achView === "progress"}">Next goals</button>
-        <button type="button" data-v="earned" aria-pressed="${achView === "earned"}">Earned</button>
-        <button type="button" data-v="all" aria-pressed="${achView === "all"}">All ${data.total_count}</button>
-      </div>
-    </div>
+    
     <div class="ach-summary card">
       <div><div class="stat-num">${fmtNum(data.score)}</div><div class="stat-label">Achievement score</div></div>
       <div class="ach-summary-bar">
@@ -383,8 +393,15 @@ function renderAchievements(data, isMe) {
           .join("")}</div>
       </div>
     </div>
-    ${showcase}
-    ${tracks || '<p class="hint">No achievements earned yet.</p>'}`;
+    <div class="ach-head">
+      <h3 class="section-title" id="achievements-title">${{ progress: "Next goals", earned: "Earned", all: "All achievements" }[achView]}</h3>
+      <div class="seg" id="achView" role="group" aria-label="Show achievements">
+        <button type="button" data-v="progress" aria-pressed="${achView === "progress"}">Next goals</button>
+        <button type="button" data-v="earned" aria-pressed="${achView === "earned"}">Earned ${data.earned_count}</button>
+        <button type="button" data-v="all" aria-pressed="${achView === "all"}">All ${data.total_count}</button>
+      </div>
+    </div>
+    ${tracks || `<p class="hint">${achView === "earned" ? "No achievements earned yet." : "Every achievement is earned. Nice work."}</p>`}`;
 }
 
 // Show / hide a badge next to your name.
@@ -454,7 +471,8 @@ const TABS = [
   "following",
   "messages", // new tab
   "compare",
-  "profile"
+  "profile",
+  "about"
 ];
 
 function showTab(name) {
@@ -466,8 +484,20 @@ function showTab(name) {
   document.querySelector("main").hidden = home;
   TABS.forEach((t) => ($(t).hidden = t !== name));
   if (name !== "messages") stopChatPolling(); // stop checking for new messages off the tab
-  if (home) window.scrollTo(0, 0);
+  window.scrollTo(0, 0); // every tab starts at the top
 }
+
+// buttons that jump to a tab, e.g. data-go="leaderboard". tabs that need an account open the login
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-go]");
+  if (!b) return;
+  const tab = document.querySelector(`.tab[data-tab="${b.dataset.go}"]`);
+  if (!tab || tab.hidden) return $("authBtn").click();
+  tab.click();
+});
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-login]") && !me) $("authBtn").click();
+});
 
 document.querySelectorAll(".tab").forEach((btn) =>
   btn.addEventListener("click", () => {
@@ -499,6 +529,7 @@ function renderHeader() {
     setCounts(0, 0);
     closeNotifPanel();
   }
+  renderPostsSide();
 }
 
 // show newly unlocked achievements and check unlocks with request using refresh()
@@ -573,6 +604,7 @@ async function refresh() {
   loadPosts();
   loadPredictions();
   loadGames();
+  loadPostsSide();
 }
 
 function setMode(m) {
@@ -697,6 +729,87 @@ function renderPosts() {
   rows.forEach((p) => loadComments(p.id));
 }
 
+// ---------- Posts sidebar (only on wide screens) ----------
+let sideLeaders = [];
+async function loadPostsSide() {
+  sideLeaders = await api("/api/leaderboard").catch(() => []);
+  renderPostsSide();
+}
+
+function renderPostsSide() {
+  const box = $("postsSide");
+  const myRow = me && sideLeaders.find((u) => u.username === me.username);
+  const you = me
+    ? `<div class="widget widget-you">
+         <span class="avatar big" aria-hidden="true">${initial(me.username)}</span>
+         <div>
+           <div class="stat-num">${fmtNum(me.reputation)} <small>rep</small></div>
+           <div class="meta">${myRow ? `Ranked #${myRow.rank} of ${sideLeaders.length}` : "Make picks to get ranked"}</div>
+         </div>
+       </div>`
+    : `<div class="widget widget-join">
+         <h3>Join the exchange</h3>
+         <p class="meta">Pick winners, wager rep and climb the board. Free with your @charlotte.edu email.</p>
+         <button type="button" class="btn btn-gold" data-login>Sign up or log in</button>
+       </div>`;
+  const top = sideLeaders
+    .slice(0, 5)
+    .map(
+      (u) => `
+      <div class="mini-row">
+        <span class="mini-rank">${u.rank}</span>
+        <span class="avatar sm" aria-hidden="true">${initial(u.username)}</span>
+        <span class="grow">${userLink(u.username)}</span>
+        <span class="mini-val">${fmtNum(u.reputation)}</span>
+      </div>`
+    )
+    .join("");
+  const soon = allGames
+    .filter(
+      (g) => g.status === "scheduled" && new Date(g.start_time) > new Date()
+    )
+    .slice(0, 4)
+    .map(
+      (g) => `
+      <div class="mini-row">
+        <div class="grow">
+          <div class="mini-teams">${esc(g.away_team)} @ ${esc(g.home_team)}</div>
+          <div class="meta">${fmtWhen(g.start_time)}</div>
+        </div>
+        ${
+          myPicks.has(g.id)
+            ? `<span class="picked">${esc(myPicks.get(g.id))}</span>`
+            : `<button type="button" class="predict" data-game="${g.id}">Predict</button>`
+        }
+      </div>`
+    )
+    .join("");
+  box.innerHTML = `
+    ${you}
+    <div class="widget">
+      <h3>Top pickers <button type="button" class="btn btn-link" data-go="leaderboard">See all</button></h3>
+      ${top || '<p class="hint">No players yet.</p>'}
+    </div>
+    <div class="widget">
+      <h3>Up next <button type="button" class="btn btn-link" data-go="predictions">All games</button></h3>
+      ${soon || '<p class="hint">No upcoming games.</p>'}
+    </div>
+    <div class="widget">
+      <h3>Earn rep</h3>
+      <ul class="rep-list">
+        <li><b>+5</b> per post <span>3 a day</span></li>
+        <li><b>+2</b> per comment <span>10 a day</span></li>
+        <li><b>+1</b> per like you get <span>20 a day</span></li>
+      </ul>
+    </div>`;
+}
+
+// Predict buttons outside the games list (sidebar, homepage)
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-game]");
+  if (b) openPredict(allGames.find((g) => g.id === Number(b.dataset.game)));
+});
+
 async function loadComments(postId) {
   const box = document.querySelector(`[data-post="${postId}"] .comment-list`);
   if (!box) return;
@@ -751,7 +864,8 @@ $("postForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = $("postBody").value;
   const file = $("postImage").files[0];
-  if (!text.trim() && !file) return alert("Write something or add a photo first.");
+  if (!text.trim() && !file)
+    return alert("Write something or add a photo first.");
 
   // sent as a form so the picture can travel with the text
   const form = new FormData();
@@ -824,6 +938,7 @@ async function loadPredictions() {
         myPicks.set(p.game_id, p.prediction_text.replace(/ wins$/, ""));
     renderPredictions();
     renderGames(); // tiles show your picks
+    renderPostsSide();
   } catch (err) {
     list.innerHTML = `<p class="error">Couldn't load predictions: ${esc(err.message)}</p>`;
   }
@@ -833,26 +948,16 @@ function renderPredictions() {
   const rows = allPreds.filter(
     (p) => predView === "all" || (me && p.user_id === me.id)
   );
-  $("predList").innerHTML = rows.length
-    ? rows
-        .map(
-          (p) =>
-            `
-    <article class="pcard ${esc(p.result)}">
-      <div>
-        <h4>${esc(p.game)}</h4>
-        <p class="meta">${predView === "all" ? userLink(p.username, p.badges) + " · " : ""}${when(p.created_at)}</p>
-      </div>
-      <div class="pred-row">
-        <span class="pick">${esc(p.prediction_text)}</span>
-        <span class="wager">${wagerText(p)}</span>
-        <span class="result ${esc(p.result)}">${esc(resultLabel(p.result))}</span>
-      </div>
-    </article>
-  `
-        )
-        .join("")
-    : `<p class="hint">${predView === "mine" ? "No predictions yet. Pick a game above." : "No predictions yet."}</p>`;
+  $("predList").innerHTML = pagedList(
+    `preds-${predView}`,
+    rows,
+    (p) => pickRow(p, predView === "all"),
+    predView === "mine"
+      ? "No predictions yet. Pick a game above."
+      : "No predictions yet.",
+    renderPredictions,
+    10
+  );
 }
 
 $("predView").addEventListener("click", (e) => {
@@ -1005,6 +1110,7 @@ async function loadGames() {
   try {
     allGames = await api("/api/games");
     renderGames();
+    renderPostsSide();
   } catch (err) {
     list.innerHTML = `<p class="error">Couldn't load games: ${esc(err.message)}</p>`;
   }
@@ -1190,14 +1296,14 @@ async function loadProfile(username, section) {
       api(`/api/users/${name}/predictions`).catch(() => null),
       api(`/api/users/${name}/achievements`).catch(() => null)
     ]);
+    // a new person (or a section asked for, like "achievements") starts on that tab
+    if (section || profileState?.p.username !== p.username) {
+      profileSection = section || "picks";
+      pickFilter = "all";
+    }
     profileState = { p, picks, ach };
     box.innerHTML = renderProfile(p, picks, ach);
-    // e.g. section "achievements" scrolls to the element with id "achievements-title"
-    if (section)
-      $(`${section}-title`)?.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
+    window.scrollTo(0, 0);
   } catch (err) {
     profileState = null;
     box.innerHTML = `<p class="error">Couldn't load profile: ${esc(err.message)}</p>`;
@@ -1211,13 +1317,15 @@ function rerenderProfile() {
   $("profileBody").innerHTML = renderProfile(p, picks, ach);
   window.scrollTo(0, y);
 }
+// which part of the profile is showing: "picks", "achievements" or "activity"
+let profileSection = "picks";
 
 function renderProfile(p, picks, ach) {
   const s = p.predictions;
   const accuracy = s.accuracy === null ? "—" : `${Math.round(s.accuracy)}%`;
   const accuracyNote = s.settled
     ? `${s.correct} of ${s.settled} settled correct`
-    : "No settled predictions yet";
+    : "No settled picks yet";
   const stat = (num, label, note = "") => `
       <div class="stat">
         <div class="stat-num">${esc(num)}</div>
@@ -1225,9 +1333,9 @@ function renderProfile(p, picks, ach) {
         ${note ? `<div class="stat-note">${esc(note)}</div>` : ""}
       </div>`;
 
-  const activity = p.recent_activity.length
-    ? p.recent_activity.map(renderActivity).join("")
-    : '<p class="hint">No activity yet.</p>';
+  // const activity = p.recent_activity.length
+  //   ? p.recent_activity.map(renderActivity).join("")
+  //   : '<p class="hint">No activity yet.</p>';
 
   const followBtn =
     me && !p.is_me
@@ -1242,103 +1350,180 @@ function renderProfile(p, picks, ach) {
       : "";
   const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
+  const tab = (v, label, n) =>
+    `<button type="button" data-section="${v}" aria-pressed="${profileSection === v}">${label}${n === "" ? "" : ` <small>${n}</small>`}</button>`;
+  const redraw = () => rerenderProfile();
+  let body;
+  if (profileSection === "achievements")
+    body = `<section class="ach">${renderAchievements(ach, p.is_me)}</section>`;
+  else if (profileSection === "activity")
+    body = pagedList(
+      "profile-activity",
+      p.recent_activity,
+      renderActivity,
+      "No activity yet.",
+      redraw,
+      10
+    );
+  else
+    body = picks
+      ? renderPicks(picks, "profile", redraw)
+      : '<p class="error">Couldn\'t load predictions.</p>';
+
   return `
-    <article class="card profile-head">
-      <div>
-        <h2>${esc(p.username)}${badgeRow(p.badges, 28)}</h2>
-        <div class="meta">Member since ${when(p.member_since)} · ${plural(p.followers, "follower")} · ${p.following} following</div>
+    <div class="profile-layout">
+      <aside class="profile-side">
+        <article class="card profile-head">
+          <span class="avatar big" aria-hidden="true">${initial(p.username)}</span>
+          <div>
+            <h2>${esc(p.username)}${badgeRow(p.badges, 24)}</h2>
+            <div class="meta">Member since ${when(p.member_since)}</div>
+            <div class="meta">${plural(p.followers, "follower")} · ${p.following} following</div>
+          </div>
+          ${messageBtn || followBtn ? `<div class="row">${messageBtn}${followBtn}</div>` : ""}
+        </article>
+        <div class="stats">
+          ${stat(fmtNum(p.reputation), "Reputation", p.rep_community ? `+${p.rep_community} from the community` : "")}
+          ${stat(accuracy, "Accuracy", accuracyNote)}
+          ${stat(`${s.correct}–${s.incorrect}`, "Record", `${s.pending} pending · ${s.total} total`)}
+          ${stat(`+${fmtNum(s.rep_gained)}`, "Rep won", `−${fmtNum(s.rep_lost)} lost`)}
+        </div>
+        ${renderShowcase(ach, p.is_me)}
+      </aside>
+      <div class="profile-main">
+        <div class="seg profile-tabs" role="group" aria-label="Profile sections">
+          ${tab("picks", "Picks", s.total)}
+          ${tab("achievements", "Achievements", ach ? `${ach.earned_count}/${ach.total_count}` : "")}
+          ${tab("activity", "Activity", "")}
+        </div>
+        ${body}
       </div>
-      <div class="row">${messageBtn}${followBtn}</div>
-    </article>
-    <div class="stats">
-      ${stat(p.reputation, "Reputation", p.rep_community ? `+${p.rep_community} from posts, comments and likes` : "")}
-      ${stat(accuracy, "Prediction accuracy", accuracyNote)}
-      ${stat(`${s.correct}–${s.incorrect}`, "Record (W–L)", `${s.pending} pending · ${s.total} total`)}
-      ${stat(`+${s.rep_gained}`, "Rep won", `−${s.rep_lost} lost on incorrect picks`)}
-    </div>
-    ${picks ? renderPicks(picks) : '<p class="error">Couldn\'t load predictions.</p>'}
-    <section class="ach">${renderAchievements(ach, p.is_me)}</section>
-    <h3 class="section-title">Recent activity</h3>
-    <div class="activity">${activity}</div>`;
+    </div>`;
 }
 
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-section]");
+  if (!b) return;
+  profileSection = b.dataset.section;
+  rerenderProfile();
+});
+
 // ---------- Picks (current + past predictions) ----------
-function pickCard(p) {
-  const kickoff = p.start_time
-    ? new Date(p.start_time).toLocaleString([], {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit"
-      })
+const shortDate = (d) =>
+  d
+    ? new Date(d).toLocaleDateString([], { month: "short", day: "numeric" })
     : "";
-  let note = "";
-  if (p.result === "pending") {
+
+// "show more" lists: each list has a key, and shownRows remembers how many rows it shows
+const PAGE_ROWS = 8;
+const shownRows = {};
+const pagers = {}; // key -> function that redraws that list
+
+function pagedList(key, items, renderRow, empty, redraw, step = PAGE_ROWS) {
+  if (!items.length) return `<p class="hint">${empty}</p>`;
+  pagers[key] = redraw;
+  const n = shownRows[key] || step;
+  const left = items.length - n;
+  return `<div class="plist">${items.slice(0, n).map(renderRow).join("")}</div>${
+    left > 0
+      ? `<button type="button" class="btn btn-outline more" data-more="${key}" data-step="${step}">Show ${Math.min(left, step)} more (${left} left)</button>`
+      : ""
+  }`;
+}
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-more]");
+  if (!b) return;
+  const key = b.dataset.more;
+  shownRows[key] =
+    (shownRows[key] || Number(b.dataset.step)) + Number(b.dataset.step);
+  pagers[key]?.();
+});
+
+// one prediction as a single compact row: game | pick | rep | result
+// who: also show the username (community lists)
+function pickRow(p, who = false) {
+  let note = shortDate(p.created_at);
+  if (p.result === "pending" && p.start_time)
     note =
       p.status === "in_progress"
         ? "In progress"
-        : kickoff
-          ? `Starts ${kickoff}`
-          : "";
-  } else if (
-    p.status === "final" &&
-    p.home_score != null &&
-    p.away_score != null
-  ) {
-    note = `Final: ${p.away_team} ${p.away_score} – ${p.home_team} ${p.home_score}`;
-  }
+        : `Starts ${fmtWhen(p.start_time)}`;
+  else if (p.status === "final" && p.home_score != null && p.away_score != null)
+    note = `Final ${p.away_score}–${p.home_score} · ${shortDate(p.created_at)}`;
   if (p.result === "void")
-    note = "Refunded: the game was tied, cancelled or never finished";
+    note = `Refunded (tie or cancelled) · ${shortDate(p.created_at)}`;
+  const amount = {
+    correct: `<b class="w">+${p.points}</b>`,
+    incorrect: `<b class="l">−${p.points}</b>`,
+    void: `${p.points} back`,
+    pending: `${p.points} at stake`
+  }[p.result];
   return `
-    <article class="pcard ${esc(p.result)}">
-      <div>
-        <h4>${esc(p.game)}</h4>
-        <p class="meta">${note ? esc(note) + " · " : ""}picked ${when(p.created_at)}</p>
+    <div class="prow ${esc(p.result)}">
+      <div class="prow-game">
+        <strong>${esc(p.game)}</strong>
+        <span class="meta">${who ? userLink(p.username, p.badges) + " · " : ""}${esc(note)}</span>
       </div>
-      <div class="pred-row">
-        <span class="pick">${esc(p.prediction_text)}</span>
-        <span class="wager">${wagerText(p)}</span>
-        <span class="result ${esc(p.result)}">${esc(resultLabel(p.result))}</span>
-      </div>
-    </article>`;
+      <span class="pick" title="${esc(p.prediction_text)}">${esc(p.prediction_text.replace(/ wins$/, ""))}</span>
+      <span class="prow-amt">${amount}</span>
+      <span class="result ${esc(p.result)}">${esc(resultLabel(p.result))}</span>
+    </div>`;
 }
 
-// inPanel: small headings inside a Following-tab row; otherwise full section headings (profile)
-function renderPicks(picks, inPanel = false) {
-  const head = (t) =>
-    inPanel
-      ? `<h4 class="picks-title">${t}</h4>`
-      : `<h3 class="section-title">${t}</h3>`;
-  const list = (items, empty) =>
-    items.length
-      ? items.map(pickCard).join("")
-      : `<p class="hint">${empty}</p>`;
-  const pastCount = picks.past.length + (picks.past.length >= 50 ? "+" : "");
+// which settled picks the profile shows: all, won, lost or refunded
+let pickFilter = "all";
+const PICK_FILTERS = {
+  all: null,
+  won: "correct",
+  lost: "incorrect",
+  refunded: "void"
+};
+
+// key: which "show more" list this is; redraw: how to draw it again after "Show more"
+function renderPicks(picks, key, redraw) {
+  const want = PICK_FILTERS[pickFilter];
+  const past = want ? picks.past.filter((p) => p.result === want) : picks.past;
+  const count = (r) => picks.past.filter((p) => p.result === r).length;
+  const chip = (v, label, n) =>
+    `<button type="button" class="chip" data-pickfilter="${v}" aria-pressed="${pickFilter === v}">${label}<small>${n}</small></button>`;
   return `
-    ${head(`Current picks (${picks.current.length})`)}
-    ${list(picks.current, "No open picks right now.")}
-    ${head(`Past picks (${pastCount})`)}
-    ${list(picks.past, "No settled picks yet.")}`;
+    <h3 class="section-title">Open picks <span class="count">${picks.current.length}</span></h3>
+    ${pagedList(`${key}-open`, picks.current, (p) => pickRow(p), "No open picks right now.", redraw)}
+    <div class="sec-head">
+      <h3 class="section-title">Settled picks <span class="count">${picks.past.length}${picks.past.length >= 50 ? "+" : ""}</span></h3>
+      <div class="filters">
+        ${chip("all", "All", picks.past.length)}${chip("won", "Won", count("correct"))}${chip("lost", "Lost", count("incorrect"))}${chip("refunded", "Refunded", count("void"))}
+      </div>
+    </div>
+    ${pagedList(`${key}-past-${pickFilter}`, past, (p) => pickRow(p), "No picks here yet.", redraw)}`;
 }
 
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-pickfilter]");
+  if (!b) return;
+  pickFilter = b.dataset.pickfilter;
+  rerenderProfile();
+});
+
+// one line of activity: a post, a comment or a prediction
 function renderActivity(a) {
-  const label = { post: "Post", comment: "Comment", prediction: "Prediction" }[
+  const label = { post: "Post", comment: "Comment", prediction: "Pick" }[
     a.type
   ];
-  const body =
+  const who = a.username ? userLink(a.username, a.badges) + " " : "";
+  const text =
     a.type === "prediction"
-      ? `<strong>${esc(a.title)}</strong>
-         <div class="pred-row">
-           <span class="pick">${esc(a.body)}</span>
-           <span>${a.result === "void" ? `${a.points} rep refunded` : `${a.points} rep wagered`}</span>
-           <span class="result ${esc(a.result)}">${esc(resultLabel(a.result))}</span>
-         </div>`
-      : `<p class="post-text">${esc(a.body)}</p>`;
+      ? `${who}picked <b>${esc(a.body.replace(/ wins$/, ""))}</b> in ${esc(a.title)} · ${a.points} rep`
+      : `${who}${a.type === "comment" ? "commented " : ""}<span class="arow-quote">${esc(a.body)}</span>`;
   return `
-    <div class="activity-item">
-            <div class="meta"><span class="kind kind-${esc(a.type)}">${label}</span> ${a.username ? userLink(a.username, a.badges) + " · " : ""}${when(a.created_at)}</div>
-      ${body}
+    <div class="arow">
+      <span class="kind kind-${esc(a.type)}">${label}</span>
+      <div class="arow-text">${text}</div>
+      <div class="arow-side">
+        ${a.type === "prediction" ? `<span class="result ${esc(a.result)}">${esc(resultLabel(a.result))}</span>` : ""}
+        <span class="arow-time">${shortDate(a.created_at)}</span>
+      </div>
     </div>`;
 }
 
@@ -1365,21 +1550,30 @@ async function loadFollowing() {
   const view = followView;
   box.innerHTML = '<p class="hint">Loading…</p>';
   try {
-    let html;
-    if (view === "followers") {
-      html = renderFollowers(await api("/api/followers"));
-    } else {
-      const [people, feed] = await Promise.all([
-        api("/api/following"),
-        api("/api/following/feed")
-      ]);
-      html = renderFollowing(people, feed);
-    }
+    const [people, feed] = await Promise.all([
+      api(view === "followers" ? "/api/followers" : "/api/following"),
+      api("/api/following/feed")
+    ]);
     if (view !== followView) return; // the toggle changed while loading
-    box.innerHTML = html;
+    box.innerHTML =
+      view === "followers" ? renderFollowers(people) : renderFollowing(people);
+    followFeed = feed;
+    renderFollowFeed();
   } catch (err) {
     box.innerHTML = `<p class="error">Couldn't load ${view}: ${esc(err.message)}</p>`;
   }
+}
+
+let followFeed = [];
+function renderFollowFeed() {
+  $("followFeed").innerHTML = pagedList(
+    "follow-feed",
+    followFeed,
+    renderActivity,
+    "No posts or predictions from the people you follow yet.",
+    renderFollowFeed,
+    12
+  );
 }
 
 // one person in the Following / Followers list, with a Picks button that opens their predictions
@@ -1402,39 +1596,31 @@ function personRow(u, note, isFollowing) {
     </div>`;
 }
 
-function renderFollowing(people, feed) {
+function renderFollowing(people) {
   if (!people.length)
     return `
-      <h3 class="section-title">Following (0)</h3>
-      <p class="hint">You're not following anyone yet. Click a username on a post or prediction to open their profile and follow them.</p>`;
-
+      <h3 class="section-title">Following <span class="count">0</span></h3>
+      <p class="hint">You're not following anyone yet. Search above, or click a username on a post or prediction to open their profile and follow them.</p>`;
   const rows = people
-    .map((u) => personRow(u, `following since ${when(u.followed_at)}`, true))
+    .map((u) => personRow(u, `since ${shortDate(u.followed_at)}`, true))
     .join("");
-
-  const activity = feed.length
-    ? feed.map(renderActivity).join("")
-    : '<p class="hint">No posts or predictions from the people you follow yet.</p>';
-
   return `
-    <h3 class="section-title">Following (${people.length})</h3>
-    <div class="follow-list">${rows}</div>
-    <h3 class="section-title">Their activity</h3>
-    <div class="activity">${activity}</div>`;
+    <h3 class="section-title">Following <span class="count">${people.length}</span></h3>
+    <div class="follow-list">${rows}</div>`;
 }
 
 function renderFollowers(people) {
   if (!people.length)
     return `
-      <h3 class="section-title">Followers (0)</h3>
+      <h3 class="section-title">Followers <span class="count">0</span></h3>
       <p class="hint">Nobody follows you yet.</p>`;
   const rows = people
     .map((u) =>
-      personRow(u, `followed you ${when(u.followed_at)}`, u.is_following)
+      personRow(u, `followed you ${shortDate(u.followed_at)}`, u.is_following)
     )
     .join("");
   return `
-    <h3 class="section-title">Followers (${people.length})</h3>
+    <h3 class="section-title">Followers <span class="count">${people.length}</span></h3>
     <div class="follow-list">${rows}</div>`;
 }
 
@@ -1454,7 +1640,12 @@ document.addEventListener("click", async (e) => {
     const picks = await api(
       `/api/users/${encodeURIComponent(btn.dataset.picks)}/predictions`
     );
-    panel.innerHTML = renderPicks(picks, true);
+    const recent = [...picks.current, ...picks.past.slice(0, 5)];
+    panel.innerHTML = `${
+      recent.length
+        ? `<div class="plist">${recent.map((p) => pickRow(p)).join("")}</div>`
+        : '<p class="hint">No picks yet.</p>'
+    }<button type="button" class="user-link see-all" data-user="${esc(btn.dataset.picks)}">See all their picks →</button>`;
     panel.dataset.loaded = "1";
   } catch (err) {
     panel.innerHTML = `<p class="error">Couldn't load picks: ${esc(err.message)}</p>`;
@@ -1567,21 +1758,43 @@ function renderLeaderboard(rows) {
         : '<p class="hint">No ranked users yet.</p>';
     return;
   }
-  list.innerHTML = rows
-    .map(
-      (u, i) => `
-    <div class="lb-row ${me && u.username === me.username ? "lb-me" : ""}">
-      <span class="lb-rank">${u.rank ?? i + 1}</span>
-      <span class="avatar" aria-hidden="true">${initial(u.username)}</span>
-      <span class="lb-who">${userLink(u.username, u.badges)}</span>
-      ${
-        lbSort === "achievements"
-          ? `<span class="lb-sub">${fmtNum(u.reputation)} rep</span><span class="badge badge-ach">${fmtNum(u.achievement_score)} pts</span>`
-          : `<span class="lb-sub">${fmtNum(u.achievement_score)} pts</span><span class="badge">${u.reputation} rep</span>`
-      }
-    </div>`
-    )
-    .join("");
+  const byAch = lbSort === "achievements";
+  const score = (u) =>
+    byAch
+      ? `<span class="badge badge-ach">${fmtNum(u.achievement_score)} pts</span>`
+      : `<span class="badge">${fmtNum(u.reputation)} rep</span>`;
+  const other = (u) =>
+    byAch
+      ? `${fmtNum(u.reputation)} rep`
+      : `${fmtNum(u.achievement_score)} pts`;
+  const mine = (u) => (me && u.username === me.username ? "lb-me" : "");
+
+  // the podium needs 3 people; it's drawn 2nd, 1st, 3rd so first place is in the middle
+  const podium = rows.length >= 3 ? rows.slice(0, 3) : [];
+  const pod = (u, place) => `
+    <div class="pod pod-${place} ${mine(u)}">
+      <span class="pod-rank">${u.rank ?? place}</span>
+      <span class="avatar big" aria-hidden="true">${initial(u.username)}</span>
+      <div class="pod-name">${userLink(u.username, u.badges)}</div>
+      ${score(u)}
+      <span class="lb-sub">${other(u)}</span>
+    </div>`;
+  const rest = rows.slice(podium.length);
+  list.innerHTML = `
+    ${podium.length ? `<div class="podium">${pod(podium[1], 2)}${pod(podium[0], 1)}${pod(podium[2], 3)}</div>` : ""}
+    <div class="lb-list ${podium.length ? "after-podium" : ""}">
+      ${rest
+        .map(
+          (u, i) => `
+      <div class="lb-row ${mine(u)}">
+        <span class="lb-rank">${u.rank ?? i + podium.length + 1}</span>
+        <span class="avatar" aria-hidden="true">${initial(u.username)}</span>
+        <span class="lb-who">${userLink(u.username, u.badges)}</span>
+        <span class="lb-sub">${other(u)}</span>${score(u)}
+      </div>`
+        )
+        .join("")}
+    </div>`;
 }
 
 // ---------- Search users ----------
@@ -2143,4 +2356,4 @@ $("chatMain").addEventListener("click", async (e) => {
     }
   }
 });
-loadCatalog().finally(refresh);
+const appReady = loadCatalog().finally(refresh);
