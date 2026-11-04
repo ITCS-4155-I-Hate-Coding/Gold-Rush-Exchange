@@ -3,6 +3,8 @@ import io
 import re
 import uuid
 from pathlib import Path
+import psycopg2
+from db import query
 
 from PIL import Image, ImageOps
 
@@ -11,13 +13,14 @@ UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
 
 IMAGE_MAX_BYTES = 5 * 1024 * 1024  # the biggest picture a user can send
 REQUEST_MAX = IMAGE_MAX_BYTES + 512 * 1024  # picture plus the text fields around it
-MAX_SIDE = 2000  # bigger photos are shrunk to this many pixels on the long side so pages stay fast
+MAX_SIDE = 1600  # bigger photos are shrunk to this many pixels on the long side so pages stay fast
 
 # refuse "decompression bombs": tiny files that unpack into enormous pictures
 Image.MAX_IMAGE_PIXELS = 40_000_000
 
 # the picture formats we accept, and the file ending each one is saved with
 FORMATS = {"JPEG": "jpg", "PNG": "png", "GIF": "gif", "WEBP": "webp"}
+MIME_TYPES = {"jpg": "image/jpeg", "png": "image/png", "gif": "image/gif", "webp": "image/webp"}
 
 # names we create look like 32 hex letters + an ending; anything else is never served
 NAME_RE = re.compile(r"^[0-9a-f]{32}\.(jpg|png|gif|webp)$")
@@ -69,17 +72,44 @@ def save_image(upload):
     except Exception:
         return None, "That file isn't a valid image."
 
-    # the name is random, so the sender's file name is never used on disk
-    name = f"{uuid.uuid4().hex}.{FORMATS[fmt]}"
-    UPLOAD_DIR.mkdir(exist_ok=True)
-    (UPLOAD_DIR / name).write_bytes(out)
+    ext = FORMATS[fmt]
+    name = f"{uuid.uuid4().hex}.{ext}"
+    query(
+        "INSERT INTO post_images (name, mime, data) VALUES (%s, %s, %s)",
+        (name, MIME_TYPES[ext], psycopg2.Binary(out)),
+        fetch = False,
+    )
     return name, None
 
 
+def get_image(name):
+    # return the (bytes, mime type) or None
+    if not valid_name(name):
+        return None
+
+    row = query("SELECT mime, data FROM post_images WHERE name = %s", (name,), fetchone = True)
+    if row:
+        return bytes(row["data"]), row["mime"]
+
 def delete_image(filename):
-    # used when saving a post fails after its picture was already written
     if valid_name(filename):
-        try:
-            (UPLOAD_DIR / filename).unlink()
-        except OSError:
-            pass
+        query("DELETE FROM post_images WHERE name = %s", (filename,), fetch = False)
+
+
+
+#     # the name is random, so the sender's file name is never used on disk
+#     name = f"{uuid.uuid4().hex}.{FORMATS[fmt]}"
+#     UPLOAD_DIR.mkdir(exist_ok=True)
+#     (UPLOAD_DIR / name).write_bytes(out)
+#     return name, None
+
+
+# def delete_image(filename):
+#     # used when saving a post fails after its picture was already written
+#     if valid_name(filename):
+#         try:
+#             (UPLOAD_DIR / filename).unlink()
+#         except OSError:
+#             pass
+
+# name will be random so senders file name is not used
