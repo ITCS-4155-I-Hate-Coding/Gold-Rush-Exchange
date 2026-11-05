@@ -2,6 +2,7 @@
 **To test with User A and User B, use a regular tab and in incognito tab to simulate using two different users**
 
 - [X]
+- [X]
 
 1. Signing up and Login Rules
 
