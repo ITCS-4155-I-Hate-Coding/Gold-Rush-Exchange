@@ -292,14 +292,13 @@ function achCard(item, isMe, featuredCount, showTrack = false) {
 //   data = the response from GET /api/users/<username>/achievements (null if it failed)
 //   isMe = true on your own profile (shows Show buttons and empty showcase slots)
 // Layout, top to bottom: heading + view toggle, score summary, showcase, cards.
-function renderAchievements(data, isMe) {
-  if (!ACH)
-    return '<p class="hint">Achievements are unavailable right now.</p>';
-  if (!data) return '<p class="error">Couldn\'t load achievements.</p>';
+// the showcase: the badges that appear next to this user's name, as 3 slots.
+// Empty slots are drawn on your own profile so it's obvious you can fill them.
+function renderShowcase(data, isMe) {
+  if (!ACH || !data) return "";
   const featured = data.featured;
-
-  // the showcase: the badges that appear next to this user's name, as 3 slots.
-  // Empty slots are drawn on your own profile so it's obvious you can fill them.
+  // on someone else's profile the showcase only appears if they chose badges
+  if (!isMe && !featured.length) return "";
   const slots = [];
   for (let i = 0; i < ACH.max_featured; i++) {
     const code = featured[i];
@@ -321,14 +320,14 @@ function renderAchievements(data, isMe) {
     </div>`;
 }
 
-// the showcase: the badges that appear next to this user's name, as 3 slots.
-// Empty slots are drawn on your own profile so it's obvious you can fill them.
-function renderShowcase(data, isMe) {
-  if (!ACH || !data) return "";
+function renderAchievements(data, isMe) {
+  if (!ACH)
+    return '<p class="hint">Achievements are unavailable right now.</p>';
+  if (!data) return '<p class="error">Couldn\'t load achievements.</p>';
   const featured = data.featured;
-  // on someone else's profile the showcase only appears if they chose badges
-  if (!isMe && !featured.length) return "";
-  // FIRST locked card met in a track is the next goal.
+
+  // pick which cards to show. data.achievements is in catalog order (easiest -> hardest
+  // within each track), so the FIRST locked card met in a track is the next goal.
   const byTrack = new Map();
   const nextShown = new Set(); // tracks whose next locked level is already shown
   for (const item of data.achievements) {
