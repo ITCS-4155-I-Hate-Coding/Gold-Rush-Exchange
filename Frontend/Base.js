@@ -809,23 +809,117 @@ document.addEventListener("click", (e) => {
   if (b) openPredict(allGames.find((g) => g.id === Number(b.dataset.game)));
 });
 
+const collapsedComments = new Set(); // ids of comments whose replies are hidden (kept when the list redraws)
+const MAX_REPLY_DEPTH = 4; // must match MAX_DEPTH in CommentBackend.py
+
 async function loadComments(postId) {
   const box = document.querySelector(`[data-post="${postId}"] .comment-list`);
   if (!box) return;
+  // if a reply box is open, remember it and what was typed, so redrawing doesn't wipe it
+  const openForm = box.querySelector(".reply-form");
+  const draft = openForm
+    ? { parent: openForm.dataset.parent, text: openForm.querySelector("input").value }
+    : null;
   try {
     const comments = await api(`/api/posts/${postId}/comments`);
-    box.innerHTML = comments
-      .map(
-        (c) => `
-      <div class="comment">${userLink(c.username, c.badges)} ${esc(c.content)}
-        <button class="like ${c.liked_by_me ? "liked" : ""}" data-like-comment="${c.id}" data-post="${postId}">${c.liked_by_me ? "Unlike" : "Like"} · ${c.likes}</button>
-      </div>`
-      )
-      .join("");
+    box.innerHTML = renderThread(comments, postId);
+    if (draft) openReplyForm(box, draft.parent, draft.text);
   } catch {
     box.innerHTML = "";
   }
 }
+
+// turns the flat list of comments into nested threads: replies sit under the comment they answer
+function renderThread(comments, postId) {
+  const kidsOf = new Map(); // comment id (0 = the post itself) -> its replies, oldest first
+  for (const c of comments) {
+    const key = c.parent_id ?? 0;
+    if (!kidsOf.has(key)) kidsOf.set(key, []);
+    kidsOf.get(key).push(c);
+  }
+  const draw = (c) => {
+    const kids = kidsOf.get(c.id) || [];
+    const hidden = collapsedComments.has(c.id);
+    const word = kids.length === 1 ? "reply" : "replies";
+    return `
+    <div class="comment" data-comment="${c.id}">
+      <div class="comment-main">
+        <div class="comment-head">${userLink(c.username, c.badges)} <span class="meta">${when(c.created_at)}</span></div>
+        <p class="comment-text">${esc(c.content)}</p>
+        <div class="comment-actions">
+          <button type="button" class="like ${c.liked_by_me ? "liked" : ""}" data-like-comment="${c.id}" data-post="${postId}"
+            aria-pressed="${c.liked_by_me ? "true" : "false"}"
+            title="${c.liked_by_me ? "Remove your like" : "Like"}"
+            aria-label="${c.liked_by_me ? "Remove your like" : "Like"} (${c.likes} likes)">${thumbIcon("up")}<span>${c.likes}</span></button>
+          <button type="button" class="like dislike ${c.disliked_by_me ? "disliked" : ""}" data-dislike-comment="${c.id}" data-post="${postId}"
+            aria-pressed="${c.disliked_by_me ? "true" : "false"}"
+            title="${c.disliked_by_me ? "Remove your dislike" : "Dislike"}"
+            aria-label="${c.disliked_by_me ? "Remove your dislike" : "Dislike"} (${c.dislikes ?? 0} dislikes)">${thumbIcon("down")}<span>${c.dislikes ?? 0}</span></button>
+          ${me ? `<button type="button" class="link-btn" data-reply="${c.id}" data-user="${esc(c.username)}" data-depth="${c.depth ?? 0}">Reply</button>` : ""}
+          ${
+            kids.length
+              ? `<button type="button" class="link-btn" data-toggle-replies="${c.id}" data-count="${kids.length}" aria-expanded="${!hidden}">${hidden ? "Show" : "Hide"} ${kids.length} ${word}</button>`
+              : ""
+          }
+        </div>
+        <div class="reply-slot"></div>
+      </div>
+      ${kids.length ? `<div class="replies"${hidden ? " hidden" : ""}>${kids.map(draw).join("")}</div>` : ""}
+    </div>`;
+  };
+  return (kidsOf.get(0) || []).map(draw).join("");
+}
+
+// opens the reply box under one comment (and closes any other reply box in the same post)
+function openReplyForm(box, parentId, text = "", username = "") {
+  box.querySelectorAll(".reply-form").forEach((f) => f.remove());
+  const comment = box.querySelector(`[data-comment="${parentId}"]`);
+  const slot = comment && comment.querySelector(":scope > .comment-main > .reply-slot");
+  if (!slot) return;
+  const who = username || comment.querySelector(".user-link")?.dataset.user || "";
+  slot.innerHTML = `
+    <form class="comment-form reply-form" data-parent="${esc(parentId)}">
+      <input placeholder="Reply to ${esc(who)}" maxlength="500" required value="${esc(text)}">
+      <button class="btn">Reply</button>
+      <button type="button" class="btn btn-outline" data-cancel-reply>Cancel</button>
+    </form>`;
+  const input = slot.querySelector("input");
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+}
+
+// Reply / Cancel / Hide-Show replies
+$("postList").addEventListener("click", (e) => {
+  const box = e.target.closest(".comment-list");
+  if (!box) return;
+
+  const reply = e.target.closest("[data-reply]");
+  if (reply) {
+    const id = reply.dataset.reply;
+    const alreadyOpen = box.querySelector(`.reply-form[data-parent="${id}"]`);
+    if (alreadyOpen) return alreadyOpen.remove(); // clicking Reply again closes the box
+    // threads stop getting deeper at the last level, so say who is being answered
+    const tooDeep = Number(reply.dataset.depth) >= MAX_REPLY_DEPTH;
+    openReplyForm(box, id, tooDeep ? `@${reply.dataset.user} ` : "", reply.dataset.user);
+    return;
+  }
+
+  if (e.target.closest("[data-cancel-reply]")) {
+    return e.target.closest(".reply-form").remove();
+  }
+
+  const toggle = e.target.closest("[data-toggle-replies]");
+  if (toggle) {
+    const id = Number(toggle.dataset.toggleReplies);
+    const replies = toggle.closest(".comment").querySelector(":scope > .replies");
+    const hide = !replies.hidden;
+    replies.hidden = hide;
+    hide ? collapsedComments.add(id) : collapsedComments.delete(id);
+    const n = Number(toggle.dataset.count);
+    toggle.textContent = `${hide ? "Show" : "Hide"} ${n} ${n === 1 ? "reply" : "replies"}`;
+    toggle.setAttribute("aria-expanded", String(!hide));
+  }
+});
 
 // ---------- Photo on a new post ----------
 const IMAGE_MAX_BYTES = 5 * 1024 * 1024; // the server enforces the same 5 MB limit
@@ -890,14 +984,21 @@ $("postForm").addEventListener("submit", async (e) => {
 
 $("postList").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const postId = e.target.closest("[data-post]").dataset.post;
-  const input = e.target.querySelector("input");
+  const form = e.target;
+  const postId = form.closest("[data-post]").dataset.post;
+  const input = form.querySelector("input");
+  const body = { content: input.value };
+  // a reply box carries the id of the comment it answers
+  const isReply = Boolean(form.dataset.parent);
+  if (isReply) body.parent_id = Number(form.dataset.parent);
   try {
-    const res = await api(`/api/posts/${postId}/comments`, "POST", {
-      content: input.value
-    });
+    const res = await api(`/api/posts/${postId}/comments`, "POST", body);
     input.value = "";
-    if (res.rep_note) showSuccessMessage(`Commented · ${res.rep_note}`);
+    if (isReply) {
+      collapsedComments.delete(body.parent_id); // show the replies so the new one is visible
+      form.remove();
+    }
+    if (res.rep_note) showSuccessMessage(`${isReply ? "Replied" : "Commented"} · ${res.rep_note}`);
     loadComments(postId);
     loadMe();
   } catch (err) {
@@ -915,8 +1016,11 @@ $("postList").addEventListener("click", async (e) => {
     } else if (btn.dataset.dislikePost) {
       await api(`/api/posts/${btn.dataset.dislikePost}/dislike`, "POST");
       loadPosts();
-    } else {
+    } else if (btn.dataset.likeComment) {
       await api(`/api/comments/${btn.dataset.likeComment}/like`, "POST");
+      loadComments(btn.dataset.post);
+    } else if (btn.dataset.dislikeComment) {
+      await api(`/api/comments/${btn.dataset.dislikeComment}/dislike`, "POST");
       loadComments(btn.dataset.post);
     }
   } catch (err) {

@@ -2831,3 +2831,70 @@ main {
 #posts #postList {
   width: 100%;
 }
+
+/* Comment threads: replies, thumbs, reply box */
+.comment {
+  padding: 0.35rem 0;
+}
+.comment-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.comment-head .meta {
+  margin: 0;
+  font-size: 0.8rem;
+}
+.comment-text {
+  margin: 0.15rem 0 0.4rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.comment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.comment-actions .like {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.1rem 0.65rem;
+}
+.link-btn {
+  padding: 0.15rem 0.35rem;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--muted);
+  font:
+    600 0.85rem "Source Sans 3",
+    sans-serif;
+  cursor: pointer;
+}
+.link-btn:hover {
+  color: var(--gold-soft);
+}
+.link-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.replies {
+  margin: 0.2rem 0 0 0.6rem;
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--line-soft);
+}
+.reply-slot:empty {
+  display: none;
+}
+.reply-form {
+  margin: 0.4rem 0 0.2rem;
+}
+@media (max-width: 560px) {
+  .replies {
+    margin-left: 0.2rem;
+    padding-left: 0.55rem;
+  }
+}

@@ -232,3 +232,17 @@ CREATE TABLE IF NOT EXISTS post_images (
     data BYTEA NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Threaded replies: a reply points at the comment it answers. NULL = a top-level comment on the post.
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_id INT REFERENCES comments(id) ON DELETE CASCADE; -- deleting a comment deletes its replies
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS depth INT NOT NULL DEFAULT 0; -- 0 = top level, 1 = reply to that, and so on
+CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id); -- speeds up finding the replies to a comment
+
+-- Comment dislikes (thumbs down). Same idea as comment_likes, and a user has a like OR a dislike on a comment, never both.
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS dislikes INTEGER NOT NULL DEFAULT 0; -- cached number of dislikes, like comments.likes
+CREATE TABLE IF NOT EXISTS comment_dislikes (
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    comment_id INT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, comment_id)
+);

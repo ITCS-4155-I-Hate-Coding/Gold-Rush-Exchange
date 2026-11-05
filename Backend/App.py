@@ -239,7 +239,12 @@ def add_comment(post_id):
     uid = session["user_id"]
     d = request.get_json(silent=True) or {}
     content = d.get("content") or ""
-    ok, message, comment_id, post_author = comments.create_comment(uid, post_id, content)
+    # parent_id is set when this comment is a reply to another comment
+    parent_id = d.get("parent_id")
+    if parent_id is not None:
+        if isinstance(parent_id, bool) or not isinstance(parent_id, int):
+            return answer(False, "That comment does not exist")
+    ok, message, comment_id, post_author = comments.create_comment(uid, post_id, content, parent_id)
     if not ok:
         return answer(ok, message)
     # +2 for a comment on someone else's post (capped)
@@ -258,6 +263,14 @@ def like_comment(comment_id):
         achievements.try_check_comment_author(comment_id)
     return answer(ok, message)
 
+
+@app.post("/api/comments/<int:comment_id>/dislike")
+def dislike_comment(comment_id):
+    if "user_id" not in session:
+        return need_login()
+    ok, message = comments.dislike_comment(session["user_id"], comment_id)
+    return answer(ok, message)
+    
 
 @app.get("/api/rep/rules")
 def rep_rules():
