@@ -2807,111 +2807,35 @@ main {
     display: none;
   }
 }
-/* Posts header: align the feed toggle with the title and match site controls. */
+
+/* Posts page: share the same segmented controls as Leaderboard.
+   No #postView-specific button styles are needed; .seg handles them. */
 #posts .posts-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
-  min-height: 2.75rem;
-}
-#posts .posts-head h2 { margin: 0; line-height: 1.2; }
-#postView {
-  display: inline-flex;
-  align-items: stretch;
-  flex: 0 0 auto;
-  margin-left: auto;
-  padding: 3px;
-  gap: 3px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--bg-card);
-  overflow: visible;
-}
-#postView button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  padding: .4rem 1rem;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--muted);
-  font: 600 .92rem "Source Sans 3", sans-serif;
-  line-height: 1.2;
-  white-space: nowrap;
-  transition: background .15s ease, color .15s ease, border-color .15s ease;
-}
-#postView button:hover { color: var(--gold-soft); background: var(--bg-raised); }
-#postView button[aria-pressed="true"] {
-  background: var(--green-deep);
-  border-color: var(--green);
-  color: var(--ink);
-}
-#postView button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-@media (max-width: 480px) {
-  #posts .posts-head { align-items: center; gap: .65rem; }
-  #postView button { padding: .4rem .7rem; min-height: 34px; }
-}
-
-/* =========================================
-   POSTS PAGE - LAYOUT FIXES
-   ========================================= */
-
-/* Match the Leaderboard header layout */
-#posts .posts-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
   margin-bottom: 1rem;
 }
 
-/* Use the exact same segmented button styling */
 #posts #postView {
-  display: inline-flex;
-  align-items: center;
-  width: auto;
-  margin: 0;
-  padding: 0;
-}
-
-/* Keep Global and Following aligned */
-#posts #postView button {
-  flex: 0 0 auto;
-  width: auto;
   margin: 0;
 }
 
-/* Center the Create a Post box */
+/* Composer directly above the feed, matching post card width. */
 #posts #postForm {
   width: 100%;
-  max-width: 640px;
-  margin: 1.5rem auto;
+  max-width: none;
+  margin: 0 0 1rem;
 }
 
-/* Keep the text area inside the box */
 #posts #postForm textarea {
   display: block;
   width: 100%;
-  box-sizing: border-box;
+  margin-bottom: .75rem;
 }
 
-/* Center the Post button */
-#posts #postForm .btn {
-  display: block;
-  margin: 0 auto;
-}
-
-/* Mobile layout */
-@media (max-width: 560px) {
-  #posts .posts-head {
-    flex-wrap: wrap;
-  }
-
-  #posts #postForm {
-    max-width: 100%;
-  }
+#posts #postList {
+  width: 100%;
 }
