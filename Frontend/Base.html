@@ -581,15 +581,15 @@
                 role="group"
                 aria-label="Show posts"
                 hidden
-              ></div>
-              <button type="button" data-v="global" aria-pressed="true">
-                Global
-              </button>
-              <button type="button" data-v="following" aria-pressed="false">
-                Following
-              </button>
+              >
+                <button type="button" data-v="global" aria-pressed="true">
+                  Global
+                </button>
+                <button type="button" data-v="following" aria-pressed="false">
+                  Following
+                </button>
+              </div>
             </div>
-          </div>
           <form id="postForm" class="card" hidden>
             <textarea
               id="postBody"
@@ -607,7 +607,7 @@
                 class="preview-remove"
                 aria-label="Remove photo"
               >
-                x
+                ×
               </button>
             </div>
             <div class="post-actions">
@@ -622,70 +622,13 @@
                 Add photo
               </button>
               <p class="rep-hint">Posts earn +5 rep (3 a day) · comments on others' posts +2 (10 a day) · each like you get +1 (20 a day)</p>
-          
             </div>
           </form>
           <p class="hint" id="postHint">Log in to write a post.</p>
           <div id="postList"></div>
+          </div>
+          <aside class="side-stack sticky-side" id="postsSide"></aside>
         </div>
-        <aside class="side-stack sticky-side" id="postsSide"></aside>
-      </div>
-        <!-- <div class="posts-head">
-          <h2>Posts</h2>
-          <div
-            class="seg"
-            id="postView"
-            role="group"
-            aria-label="Show posts"
-            hidden
-          >
-            <button type="button" data-v="global" aria-pressed="true">
-              Global
-            </button>
-            <button type="button" data-v="following" aria-pressed="false">
-              Following
-            </button>
-          </div>
-        </div>
-        <form id="postForm" class="card" hidden>
-          <textarea
-            id="postBody"
-            placeholder="Share something with the exchange"
-            rows="3"
-          ></textarea>
-          <div id="postImagePreview" class="post-preview" hidden>
-            <img
-              id="postImageThumb"
-              alt="Preview of the photo you are about to post"
-            />
-            <button
-              type="button"
-              id="postImageRemove"
-              class="preview-remove"
-              aria-label="Remove photo"
-            >
-              ×
-            </button>
-          </div>
-          <div class="post-actions">
-            <button class="btn">Post</button>
-            <input
-              type="file"
-              id="postImage"
-              accept="image/jpeg,image/png,image/gif,image/webp"
-              hidden
-            />
-            <button type="button" class="btn btn-outline" id="postImageBtn">
-              Add photo
-            </button>
-            <p class="rep-hint">
-              Posts earn +5 rep (3 a day) · comments on others' posts +2 (10 a
-              day) · each like you get +1 (20 a day)
-            </p>
-          </div>
-        </form>
-        <p class="hint" id="postsHint">Log in to write a post.</p>
-        <div id="postList"></div> -->
       </section>
 
       <section id="predictions" class="panel" hidden>

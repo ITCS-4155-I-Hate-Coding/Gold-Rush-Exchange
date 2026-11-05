@@ -1617,6 +1617,7 @@ dialog h2 {
   flex-wrap: wrap;
 }
 .rep-hint {
+  flex-basis: 100%; /* own line under the Post / Add photo buttons */
   margin: 0;
   font-size: 0.82rem;
   color: var(--muted);
@@ -2808,17 +2809,8 @@ main {
   }
 }
 
-/* Posts page: share the same segmented controls as Leaderboard.
-   No #postView-specific button styles are needed; .seg handles them. */
-#posts .posts-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-}
-
+/* Posts page: the Global/Following toggle uses the shared .seg styles
+   (header layout comes from .posts-head). */
 #posts #postView {
   margin: 0;
 }
