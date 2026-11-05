@@ -2855,3 +2855,63 @@ main {
   #posts .posts-head { align-items: center; gap: .65rem; }
   #postView button { padding: .4rem .7rem; min-height: 34px; }
 }
+
+/* =========================================
+   POSTS PAGE - LAYOUT FIXES
+   ========================================= */
+
+/* Match the Leaderboard header layout */
+#posts .posts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Use the exact same segmented button styling */
+#posts #postView {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+
+/* Keep Global and Following aligned */
+#posts #postView button {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+}
+
+/* Center the Create a Post box */
+#posts #postForm {
+  width: 100%;
+  max-width: 640px;
+  margin: 1.5rem auto;
+}
+
+/* Keep the text area inside the box */
+#posts #postForm textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Center the Post button */
+#posts #postForm .btn {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Mobile layout */
+@media (max-width: 560px) {
+  #posts .posts-head {
+    flex-wrap: wrap;
+  }
+
+  #posts #postForm {
+    max-width: 100%;
+  }
+}
