@@ -40,6 +40,8 @@ const userLink = (u, badges) =>
 // thumbs-up / thumbs-down icons (the down one is the up one turned upside down in the CSS)
 const thumbIcon = (dir) =>
   `<svg class="thumb ${dir}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>`;
+// a like/dislike count, or nothing when it is 0
+const countText = (n) => (n ? `<span>${n}</span>` : "");
 const initial = (u) => esc((u || "?").trim().charAt(0).toUpperCase() || "?");
 
 // ACHIEVEMENTS AND BADGES
@@ -701,31 +703,55 @@ function renderPosts() {
       <article class="card post-card" data-post="${p.id}">
         <div class="post-head">
           <span class="avatar" aria-hidden="true">${initial(p.username)}</span>
-          <div class="meta">${userLink(p.username, p.badges)} · ${when(p.created_at)}</div>        </div>
+          <div class="meta">${userLink(p.username, p.badges)} · ${ago(p.created_at)}</div>        </div>
         ${p.content ? `<p class="post-text">${esc(p.content)}</p>` : ""}
         ${
           p.image_url
             ? `<a class="post-img-link" href="${esc(p.image_url)}" target="_blank" rel="noopener"><img class="post-img" src="${esc(p.image_url)}" alt="Photo posted by ${esc(p.username)}" loading="lazy"></a>`
             : ""
         }
-        <div class="post-foot">
-          <button type="button" class="like ${p.liked_by_me ? "liked" : ""}" data-like-post="${p.id}"
-            aria-pressed="${p.liked_by_me ? "true" : "false"}"
-            title="${p.liked_by_me ? "Remove your like" : "Like"}"
-            aria-label="${p.liked_by_me ? "Remove your like" : "Like"} (${p.likes} likes)">${thumbIcon("up")}<span>${p.likes}</span></button>
-          <button type="button" class="like dislike ${p.disliked_by_me ? "disliked" : ""}" data-dislike-post="${p.id}"
-            aria-pressed="${p.disliked_by_me ? "true" : "false"}"
-            title="${p.disliked_by_me ? "Remove your dislike" : "Dislike"}"
-            aria-label="${p.disliked_by_me ? "Remove your dislike" : "Dislike"} (${p.dislikes ?? 0} dislikes)">${thumbIcon("down")}<span>${p.dislikes ?? 0}</span></button>
-        </div>
+        <div class="post-foot">${postFoot(p)}</div>
         <div class="comments">
-          <div class="comment-list"></div>
+          <div class="comment-list">${renderThread(p.comments || [], p.id)}</div>
           ${me ? `<form class="comment-form"><input placeholder="Add a comment" required><button class="btn">Comment</button></form>` : ""}
         </div>
       </article>`
     )
     .join("");
-  rows.forEach((p) => loadComments(p.id));
+}
+
+// the like and dislike buttons under a post
+function postFoot(p) {
+  return `
+          <button type="button" class="like ${p.liked_by_me ? "liked" : ""}" data-like-post="${p.id}"
+            aria-pressed="${p.liked_by_me ? "true" : "false"}"
+            title="${p.liked_by_me ? "Remove your like" : "Like"}"
+            aria-label="${p.liked_by_me ? "Remove your like" : "Like"} (${p.likes} likes)">${thumbIcon("up")}${countText(p.likes)}</button>
+          <button type="button" class="like dislike ${p.disliked_by_me ? "disliked" : ""}" data-dislike-post="${p.id}"
+            aria-pressed="${p.disliked_by_me ? "true" : "false"}"
+            title="${p.disliked_by_me ? "Remove your dislike" : "Dislike"}"
+            aria-label="${p.disliked_by_me ? "Remove your dislike" : "Dislike"} (${p.dislikes ?? 0} dislikes)">${thumbIcon("down")}${countText(p.dislikes)}</button>`;
+}
+
+// same rules as the server: pressing the same button again takes it back, the other one switches
+function toggleReaction(p, kind) {
+  const keys = {
+    like: ["likes", "liked_by_me"],
+    dislike: ["dislikes", "disliked_by_me"]
+  };
+  const [count, mine] = keys[kind];
+  const [otherCount, otherMine] = keys[kind === "like" ? "dislike" : "like"];
+  if (p[mine]) {
+    p[mine] = false;
+    p[count] -= 1;
+    return;
+  }
+  p[mine] = true;
+  p[count] = (p[count] ?? 0) + 1;
+  if (p[otherMine]) {
+    p[otherMine] = false;
+    p[otherCount] -= 1;
+  }
 }
 
 // ---------- Posts sidebar (only on wide screens) ----------
@@ -811,6 +837,8 @@ document.addEventListener("click", (e) => {
 
 const collapsedComments = new Set(); // ids of comments whose replies are hidden (kept when the list redraws)
 const MAX_REPLY_DEPTH = 4; // must match MAX_DEPTH in CommentBackend.py
+const COMMENTS_SHOWN = 2; // posts with more comments than this start folded
+const expandedPosts = new Set(); // ids of posts where "View all comments" was clicked
 
 async function loadComments(postId) {
   const box = document.querySelector(`[data-post="${postId}"] .comment-list`);
@@ -818,7 +846,10 @@ async function loadComments(postId) {
   // if a reply box is open, remember it and what was typed, so redrawing doesn't wipe it
   const openForm = box.querySelector(".reply-form");
   const draft = openForm
-    ? { parent: openForm.dataset.parent, text: openForm.querySelector("input").value }
+    ? {
+        parent: openForm.dataset.parent,
+        text: openForm.querySelector("input").value
+      }
     : null;
   try {
     const comments = await api(`/api/posts/${postId}/comments`);
@@ -844,17 +875,17 @@ function renderThread(comments, postId) {
     return `
     <div class="comment" data-comment="${c.id}">
       <div class="comment-main">
-        <div class="comment-head">${userLink(c.username, c.badges)} <span class="meta">${when(c.created_at)}</span></div>
+        <div class="comment-head">${userLink(c.username, c.badges)} <span class="meta">${ago(c.created_at)}</span></div>
         <p class="comment-text">${esc(c.content)}</p>
         <div class="comment-actions">
           <button type="button" class="like ${c.liked_by_me ? "liked" : ""}" data-like-comment="${c.id}" data-post="${postId}"
             aria-pressed="${c.liked_by_me ? "true" : "false"}"
             title="${c.liked_by_me ? "Remove your like" : "Like"}"
-            aria-label="${c.liked_by_me ? "Remove your like" : "Like"} (${c.likes} likes)">${thumbIcon("up")}<span>${c.likes}</span></button>
+            aria-label="${c.liked_by_me ? "Remove your like" : "Like"} (${c.likes} likes)">${thumbIcon("up")}${countText(c.likes)}</button>
           <button type="button" class="like dislike ${c.disliked_by_me ? "disliked" : ""}" data-dislike-comment="${c.id}" data-post="${postId}"
             aria-pressed="${c.disliked_by_me ? "true" : "false"}"
             title="${c.disliked_by_me ? "Remove your dislike" : "Dislike"}"
-            aria-label="${c.disliked_by_me ? "Remove your dislike" : "Dislike"} (${c.dislikes ?? 0} dislikes)">${thumbIcon("down")}<span>${c.dislikes ?? 0}</span></button>
+            aria-label="${c.disliked_by_me ? "Remove your dislike" : "Dislike"} (${c.dislikes ?? 0} dislikes)">${thumbIcon("down")}${countText(c.dislikes)}</button>
           ${me ? `<button type="button" class="link-btn" data-reply="${c.id}" data-user="${esc(c.username)}" data-depth="${c.depth ?? 0}">Reply</button>` : ""}
           ${
             kids.length
@@ -867,16 +898,28 @@ function renderThread(comments, postId) {
       ${kids.length ? `<div class="replies"${hidden ? " hidden" : ""}>${kids.map(draw).join("")}</div>` : ""}
     </div>`;
   };
-  return (kidsOf.get(0) || []).map(draw).join("");
+  // return (kidsOf.get(0) || []).map(draw).join("");
+
+  // long lists will start folded and the newest few show until View All is clicked
+  const top = kidsOf.get(0) || [];
+  const hide = expandedPosts.has(Number(postId))
+    ? 0
+    : Math.max(0, top.length - COMMENTS_SHOWN);
+  const more = hide
+    ? `<button type="button" class="link-btn more-comments" data-show-comments="${postId}">View all ${comments.length} comments</button>`
+    : "";
+  return more + top.slice(hide).map(draw).join("");
 }
 
 // opens the reply box under one comment (and closes any other reply box in the same post)
 function openReplyForm(box, parentId, text = "", username = "") {
   box.querySelectorAll(".reply-form").forEach((f) => f.remove());
   const comment = box.querySelector(`[data-comment="${parentId}"]`);
-  const slot = comment && comment.querySelector(":scope > .comment-main > .reply-slot");
+  const slot =
+    comment && comment.querySelector(":scope > .comment-main > .reply-slot");
   if (!slot) return;
-  const who = username || comment.querySelector(".user-link")?.dataset.user || "";
+  const who =
+    username || comment.querySelector(".user-link")?.dataset.user || "";
   slot.innerHTML = `
     <form class="comment-form reply-form" data-parent="${esc(parentId)}">
       <input placeholder="Reply to ${esc(who)}" maxlength="500" required value="${esc(text)}">
@@ -893,6 +936,12 @@ $("postList").addEventListener("click", (e) => {
   const box = e.target.closest(".comment-list");
   if (!box) return;
 
+  const showAll = e.target.closest("[data-show-comments]");
+  if (showAll) {
+    expandedPosts.add(Number(showAll.dataset.showComments));
+    return loadComments(showAll.dataset.showComments);
+  }
+
   const reply = e.target.closest("[data-reply]");
   if (reply) {
     const id = reply.dataset.reply;
@@ -900,7 +949,12 @@ $("postList").addEventListener("click", (e) => {
     if (alreadyOpen) return alreadyOpen.remove(); // clicking Reply again closes the box
     // threads stop getting deeper at the last level, so say who is being answered
     const tooDeep = Number(reply.dataset.depth) >= MAX_REPLY_DEPTH;
-    openReplyForm(box, id, tooDeep ? `@${reply.dataset.user} ` : "", reply.dataset.user);
+    openReplyForm(
+      box,
+      id,
+      tooDeep ? `@${reply.dataset.user} ` : "",
+      reply.dataset.user
+    );
     return;
   }
 
@@ -911,7 +965,9 @@ $("postList").addEventListener("click", (e) => {
   const toggle = e.target.closest("[data-toggle-replies]");
   if (toggle) {
     const id = Number(toggle.dataset.toggleReplies);
-    const replies = toggle.closest(".comment").querySelector(":scope > .replies");
+    const replies = toggle
+      .closest(".comment")
+      .querySelector(":scope > .replies");
     const hide = !replies.hidden;
     replies.hidden = hide;
     hide ? collapsedComments.add(id) : collapsedComments.delete(id);
@@ -998,7 +1054,10 @@ $("postList").addEventListener("submit", async (e) => {
       collapsedComments.delete(body.parent_id); // show the replies so the new one is visible
       form.remove();
     }
-    if (res.rep_note) showSuccessMessage(`${isReply ? "Replied" : "Commented"} · ${res.rep_note}`);
+    if (res.rep_note)
+      showSuccessMessage(
+        `${isReply ? "Replied" : "Commented"} · ${res.rep_note}`
+      );
     loadComments(postId);
     loadMe();
   } catch (err) {
@@ -1009,13 +1068,18 @@ $("postList").addEventListener("submit", async (e) => {
 $("postList").addEventListener("click", async (e) => {
   const btn = e.target.closest(".like");
   if (!btn) return;
+  if (!me) return void $("authBtn").click(); // when logged out, opens the login box instead of an error
   try {
-    if (btn.dataset.likePost) {
-      await api(`/api/posts/${btn.dataset.likePost}/like`, "POST");
-      loadPosts();
-    } else if (btn.dataset.dislikePost) {
-      await api(`/api/posts/${btn.dataset.dislikePost}/dislike`, "POST");
-      loadPosts();
+    if (btn.dataset.likePost || btn.dataset.dislikePost) {
+      //
+      const id = Number(btn.dataset.likePost || btn.dataset.dislikePost);
+      const kind = btn.dataset.likePost ? "like" : "dislike";
+      await api(`/api/posts/${id}/${kind}`, "POST");
+      const p = allPosts.find((x) => x.id === id);
+      if (p) {
+        toggleReaction(p, kind);
+        btn.closest(".post-foot").innerHTML = postFoot(p);
+      }
     } else if (btn.dataset.likeComment) {
       await api(`/api/comments/${btn.dataset.likeComment}/like`, "POST");
       loadComments(btn.dataset.post);
@@ -1301,7 +1365,7 @@ function renderGames() {
           .map(
             (g) => `
         <article class="tile">
-          <div class="tile-top"><span class="sport ${esc(g.sport)}">${esc(g.sport)}</span><span>${esc(g.status)}</span></div>
+          <div class="tile-top"><span class="sport ${esc(g.sport)}">${esc(g.sport)}</span></div>
           <div class="teams">
             <div><i>AWAY</i><span>${teamLabel(g.away_team, g.away_rank)}</span></div>
             <div><i>HOME</i><span>${teamLabel(g.home_team, g.home_rank)}</span></div>
