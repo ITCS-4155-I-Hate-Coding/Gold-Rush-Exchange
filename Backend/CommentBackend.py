@@ -111,19 +111,23 @@ def dislike_comment(user_id, comment_id):
     return _react(user_id, comment_id, "dislike")
 
 
-def view_comments(post_id, user_id=None):
-    # using JOIN to pull username with comment to see who said what, plus whether the current user has
-    # liked or disliked it. parent_id and depth let the page group replies under the comment they answer.
+def view_comments(post_id, user_id = None):
+    return view_comments_for_posts([post_id], user_id)
+
+
+def view_comments_for_posts(post_id, user_id=None):
+    # every comment on a list of posts in one query so the posts tab doesnt ask once per post
+    # 
     return query(
         """
-        SELECT comments.id, comments.parent_id, comments.depth, comments.content, comments.likes, comments.dislikes,
+        SELECT comments.id, comments.post_id, comments.parent_id, comments.depth, comments.content, comments.likes, comments.dislikes,
                comments.created_at, users.username,
                EXISTS(SELECT 1 FROM comment_likes cl WHERE cl.comment_id = comments.id AND cl.user_id = %s) AS liked_by_me,
                EXISTS(SELECT 1 FROM comment_dislikes cd WHERE cd.comment_id = comments.id AND cd.user_id = %s) AS disliked_by_me
         FROM comments
         JOIN users ON users.id = comments.user_id
-        WHERE comments.post_id = %s
+        WHERE comments.post_id = ANY(%s)
         ORDER BY comments.created_at ASC, comments.id ASC
         """,
-        (user_id, user_id, post_id),
+        (user_id, user_id, list(post_id)),
     )

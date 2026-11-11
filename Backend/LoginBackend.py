@@ -11,7 +11,7 @@ import bcrypt
 from db import query
 
 # matching emails in order to fit the charlotte.edu requirement
-EMAIL_PATTERN = re.compile(r"[A-Za-z0-9._%+-]+@charlotte\.edu$")
+EMAIL_PATTERN = re.compile(r"[A-Za-z0-9._%+-]+@charlotte\.edu$", re.IGNORECASE) # ignoring capitals in email address
 
 USERNAME_PATTERN = re.compile(r"[A-Za-z0-9_.]{3,20}")
 
