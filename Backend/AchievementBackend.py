@@ -264,11 +264,11 @@ def check_achievements(user_id, notify=True):
         for row in inserted:
             stats["earned"].append({"code": row["code"], "earned_at": row["earned_at"], "featured": False})
         new = [row["code"] for row in inserted]
-        if notify:
-        # one for each achievement just unlocked, plus progress toward the next ones
-            items = [_unlocked_notification(code) for code in new]
-            items += _progress_notifications(stats)
-            notifications.create_many(user_id, items)
+    if notify:
+    # one for each achievement just unlocked, plus progress toward the next ones
+        items = [_unlocked_notification(code) for code in new]
+        items += _progress_notifications(stats)
+        notifications.create_many(user_id, items)
     return new, stats
 
 PROGRESS_MILESTONES = (50, 75, 90)  # for targets of PROGRESS_BIG or more
