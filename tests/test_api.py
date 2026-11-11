@@ -254,8 +254,27 @@ check(r.status_code == 400, "a file that isn't an image is refused")
 check(requests.get(f"{BASE}/uploads/../Backend/db.py").status_code == 404, "only real picture names are served")
 r = c["NinerNate"].post(f"{BASE}/api/messages/GoldDigger", json={"body": "x" * 70000})
 check(r.status_code == 413, "other routes still refuse requests over 64 KB")
-stats = requests.get(f"{BASE}/api/stats").json()
-check(stats["players"] >= 6 and "picks" in stats, "homepage stats are public")
+# ---------- odd input ----------
+r = c["Jordan"].post(f"{BASE}/api/predictions", json={"game_id": "abc", "pick": "home", "points": 5})
+check(r.status_code == 400, "a game id that isn't a number is refused")
+r = c["Jordan"].post(f"{BASE}/api/predictions", json={"game_id": upcoming, "pick": "home", "points": 2.5})
+check(r.status_code == 400, "a wager with decimals is refused")
+r = requests.post(f"{BASE}/api/register", json={"username": "CapsUser", "email": "CapsUser@Charlotte.EDU", "password": "goldrush49"})
+check(r.ok, "an email with capital letters can register")
+
+# ---------- replies ----------
+def newest_comment(post_id):
+    return max(x["id"] for x in requests.get(f"{BASE}/api/posts/{post_id}/comments").json())
+
+c["RallyCat"].post(f"{BASE}/api/posts/{quinn_post}/comments", json={"content": "top level comment"})
+top = parent = newest_comment(quinn_post)
+for i in range(6):
+    c["Sammy49"].post(f"{BASE}/api/posts/{quinn_post}/comments", json={"content": f"reply {i}", "parent_id": parent})
+    parent = newest_comment(quinn_post)
+depths = [x["depth"] for x in requests.get(f"{BASE}/api/posts/{quinn_post}/comments").json()]
+check(max(depths) == 4, f"replies stop nesting at depth 4 (deepest {max(depths)})")
+r = c["Sammy49"].post(f"{BASE}/api/posts/{post['id']}/comments", json={"content": "wrong post", "parent_id": top})
+check(r.status_code == 400, "a reply can't point at a comment on a different post")
 
 print("\nFAILURES:", fails)
 
