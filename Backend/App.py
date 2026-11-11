@@ -28,7 +28,7 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE") == "1",  # set to 1 when served over https
-    MAX_CONTENT_LENGTH=images.REQUEST_MAX,  # 64KB limit
+    MAX_CONTENT_LENGTH=images.REQUEST_MAX,  # biggest upload allowed for a post with a picture
 )
 
 # achievements will sync every time the server starts and is wrapped in try/except
@@ -53,6 +53,14 @@ def int_arg(name):
         return int(request.args[name])
     except (KeyError, ValueError):
         return None
+
+def whole_number(value):
+    # json value as a positive int, or None (true/false, 2.5, "abc", and lists dont count)
+    # True counts as int in Python
+    # Upper limit is 2**31 for Postesgres INT
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return value if 0 < value < 2**31 else None
 
 SMALL_REQUEST_MAX = 64 * 1024
 
@@ -155,7 +163,17 @@ def me():
 @app.get("/api/posts")
 def get_posts():
     # attach badges and score to users name
-    return jsonify(achievements.attach_badges(posts.view_posts(session.get("user_id"))))
+    uid = session.get("user_id")
+    rows = posts.view_posts(uid)
+    # the comments will come with posts so the page makes one request instead of many
+    all_comments = comments.view_comments_for_posts([p["id"] for p in rows], uid)
+    by_post = {}
+    for c in all_comments:
+        by_post.setdefault(c["post_id"], []).append(c)
+    for p in rows:
+        p["comments"] = by_post.get(p["id"], [])
+    achievements.attach_badges(rows + all_comments)
+    return jsonify(rows)
 
 
 @app.post("/api/posts")
@@ -289,11 +307,14 @@ def add_prediction():
     if "user_id" not in session:
         return need_login()
     d = request.get_json(silent=True) or {}
-    try:
-        points = int(d.get("points"))
-    except (TypeError, ValueError):
-        return jsonify(error="Points must be a number."), 400
-    ok, message = preds.create_prediction(session["user_id"], d.get("game_id"), d.get("pick"), points)
+    game_id = whole_number(d.get("game_id"))
+    points = whole_number(d.get("points"))
+    if game_id is None:
+        return jsonify(error = "That game does not exist"), 400
+    if points is None:
+        return jsonify(error = "Points must be a whole number above 0."), 400
+    ok, message = preds.create_prediction(session["user_id"], game_id, d.get("pick"), points)
+    
     if ok:
         achievements.try_check(session["user_id"])
     return answer(ok, message)
