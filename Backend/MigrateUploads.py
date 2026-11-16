@@ -1,4 +1,4 @@
-# run once from the Backend folder:  python migrate_uploads.py
+# run once from the Backend folder:  python MigrateUploads.py
 # copies pictures saved in the old ../uploads folder into the post_images table,
 # so posts made before the switch to database storage show their pictures again.
 # safe to run again (files already copied are skipped).
