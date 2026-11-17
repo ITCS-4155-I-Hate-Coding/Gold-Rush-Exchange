@@ -41,7 +41,7 @@ def get_comparison(user_id, usernames):
                COUNT(p.id) FILTER (WHERE p.result = 'correct')   AS correct,
                COUNT(p.id) FILTER (WHERE p.result = 'incorrect') AS incorrect,
                COUNT(p.id) FILTER (WHERE p.result = 'pending')   AS pending,
-               COALESCE(SUM(p.points) FILTER (WHERE p.result = 'correct'), 0)   AS rep_gained,
+               COALESCE(SUM(p.to_win) FILTER (WHERE p.result = 'correct'), 0)   AS rep_gained,
                COALESCE(SUM(p.points) FILTER (WHERE p.result = 'incorrect'), 0) AS rep_lost
         FROM users u
         LEFT JOIN predictions p ON p.user_id = u.id
