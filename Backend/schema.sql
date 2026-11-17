@@ -246,3 +246,15 @@ CREATE TABLE IF NOT EXISTS comment_dislikes (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, comment_id)
 );
+
+
+-- the odds and both sides will get their ratings
+ALTER TABLE games ADD COLUMN IF NOT EXISTS neutral_site BOOLEAN NOT NULL DEFAULT false; -- no home edge at neutral site
+ALTER TABLE games ADD COLUMN IF NOT EXISTS home_chance NUMERIC(4,3);    -- home teams chance to win from 0-1
+ALTER TABLE games ADD COLUMN IF NOT EXISTS home_odds NUMERIC(5,2); -- so 1.38 means that a correct pick pays out x1.38
+ALTER TABLE games ADD COLUMN IF NOT EXISTS away_odds NUMERIC(5,2); 
+
+-- 
+ALTER TABLE predictions ADD COLUMN IF NOT EXISTS odds NUMERIC(5,2);
+ALTER TABLE predictions ADD COLUMN IF NOT EXISTS to_win INT;
+UPDATE predictions SET odds = 2.00, to_win = points WHERE to_win IS NULL;
