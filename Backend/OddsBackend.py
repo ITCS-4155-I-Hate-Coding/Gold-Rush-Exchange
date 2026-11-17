@@ -10,7 +10,7 @@ These ratings are going to be different from the AP polls top 25 rankings
 
 """
 
-import json 
+import json
 import math
 from db import query
 
@@ -86,7 +86,7 @@ EX:
     first rating = 1500 + bonus * ((26 - AP Rank) / 25) --ranked
         bonus = 400(fb), 600(bb)
     
-    first rating = 15 --unranked
+    first rating = 1500 --unranked
 
     first rating = 1000 (for FCS football) and 600 (outside Div 1 basketball)
 
@@ -120,7 +120,7 @@ EX:
 
 SETTINGS = {
 
-    # 'k' is how far one game can move a voting (40 for football, 90 for basketball since each game is worth less)
+    # 'k' is how far one game can move a voting (40 for football, 28 for basketball since each game is worth less)
     # home rating is the home field advantage in the rating points
     # ranked_bonus os how far above average
     # carry is the share of last seasons ratings that were kept
@@ -176,8 +176,8 @@ def build_ratings(games):
         result = 1.0 if margin > 0 else 0.0 if margin < 0 else 0.5
 
         winner_diff = diff if margin > 0 else -diff
-        mov = math.log(abs(margin) + 1) * 2.2 / (winner_diff + 0.001 + 2.2)
-        change = s["k"] * mov (result - expected)
+        mov = math.log(abs(margin) + 1) * 2.2 / (0.001 * winner_diff + 2.2)
+        change = s["k"] * mov * (result - expected)
         ratings[home] += change
         ratings[away] -= change
     return ratings, history
@@ -210,9 +210,9 @@ def update_odds():
             """
             UPDATE games SET home_chance = x.chance, home_odds = x.home, away_odds = x.away
              FROM json_to_recordset(%s::json) AS x(id int, chance numeric, home numeric, away numeric)
-             WHERE games.id = x.id,
-             (json.dumps(rows),), fetch=False
-            """
+             WHERE games.id = x.id
+            """,
+            (json.dumps(rows),), fetch=False,
         )
     return len(rows)
 
