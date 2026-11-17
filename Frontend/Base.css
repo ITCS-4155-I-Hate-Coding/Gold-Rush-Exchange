@@ -2344,6 +2344,7 @@ main {
   font-size: 0.88rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .prow-amt .w,
 .about-card .w {
@@ -2408,6 +2409,7 @@ main {
   min-width: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -2523,6 +2525,7 @@ main {
   margin-top: 0.25rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -2916,4 +2919,23 @@ main {
   .rep-hint {
     display: none;
   }
+}
+
+/* odds on game tiles and in the pick dialog */
+.teams .odds {
+  margin-left: auto;
+  flex: none;
+  font:
+    700 0.95rem "Source Sans 3",
+    sans-serif;
+  color: var(--gold-soft);
+  font-variant-numeric: tabular-nums;
+}
+.pick-odds {
+  display: block;
+  margin-top: 0.3rem;
+  font:
+    italic 400 0.8rem "Source Sans 3",
+    sans-serif;
+  color: var(--muted);
 }
