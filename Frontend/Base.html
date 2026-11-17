@@ -84,7 +84,11 @@
         inset: -40px -30px auto auto;
         width: 220px;
         height: 220px;
-        background: radial-gradient(circle, rgba(212, 175, 90, 0.16), transparent 70%);
+        background: radial-gradient(
+          circle,
+          rgba(212, 175, 90, 0.16),
+          transparent 70%
+        );
         z-index: -1;
       }
       #landing .lp-board-head {
@@ -161,7 +165,8 @@
         color: var(--muted);
         font-variant-numeric: tabular-nums;
       }
-      #landing .lp-out .w, #landing .lp-board .w {
+      #landing .lp-out .w,
+      #landing .lp-board .w {
         color: var(--win);
         font-weight: 700;
       }
@@ -200,7 +205,7 @@
       }
 
       #landing .lp-sec {
-        padding: 3.5rem 0 1rem;      
+        padding: 3.5rem 0 1rem;
       }
       #landing .lp-sub {
         color: var(--muted);
@@ -242,7 +247,7 @@
       }
       #landing .lp-steps h3,
       #landing .lp-copy h2 {
-        margin: 0 0 0.3rem;      
+        margin: 0 0 0.3rem;
         font:
           700 1.4rem "Barlow Condensed",
           sans-serif;
@@ -315,7 +320,11 @@
         border-radius: 12px;
         border: 1px solid rgba(212, 175, 90, 0.3);
         background:
-          radial-gradient(600px 200px at 50% 0%, rgba(212, 175, 90, 0.14), transparent 70%),
+          radial-gradient(
+            600px 200px at 50% 0%,
+            rgba(212, 175, 90, 0.14),
+            transparent 70%
+          ),
           var(--bg-raised);
       }
       #landing .lp-final .lp-sub {
@@ -352,7 +361,7 @@
           font-size: 1.2rem;
         }
         #landing .lp-steps p {
-          font-size: 0.9rem;      
+          font-size: 0.9rem;
         }
       }
     </style>
@@ -442,13 +451,17 @@
             <p class="lp-lede">
               Pick winners in 49ers football and college hoops, back your calls
               with reputation, and climb the leaderboard against the rest of
-              campus.      
+              campus.
             </p>
             <div class="lp-cta">
               <button type="button" class="btn btn-gold lp-btn" id="lpStart">
                 Start predicting
               </button>
-              <button type="button" class="btn btn-outline lp-btn" data-go="about">
+              <button
+                type="button"
+                class="btn btn-outline lp-btn"
+                data-go="about"
+              >
                 How it works
               </button>
             </div>
@@ -466,10 +479,38 @@
             <div id="lpGames"></div>
             <div class="lp-stake">
               <div class="lp-wagers" role="group" aria-label="Wager">
-                <button type="button" class="chip lp-chip" aria-pressed="false" data-n="10">10</button>
-                <button type="button" class="chip lp-chip" aria-pressed="false" data-n="25">25</button>
-                <button type="button" class="chip lp-chip" aria-pressed="false" data-n="50">50</button>
-                <button type="button" class="chip lp-chip" aria-pressed="false" data-n="100">100</button>
+                <button
+                  type="button"
+                  class="chip lp-chip"
+                  aria-pressed="false"
+                  data-n="10"
+                >
+                  10
+                </button>
+                <button
+                  type="button"
+                  class="chip lp-chip"
+                  aria-pressed="false"
+                  data-n="25"
+                >
+                  25
+                </button>
+                <button
+                  type="button"
+                  class="chip lp-chip"
+                  aria-pressed="false"
+                  data-n="50"
+                >
+                  50
+                </button>
+                <button
+                  type="button"
+                  class="chip lp-chip"
+                  aria-pressed="false"
+                  data-n="100"
+                >
+                  100
+                </button>
               </div>
               <p class="lp-out" id="lpOut" aria-live="polite">
                 Pick a team, then a wager.
@@ -485,7 +526,9 @@
           <div><b data-stat="players">–</b><span>players</span></div>
           <div><b data-stat="picks">–</b><span>picks made</span></div>
           <div><b data-stat="rep_wagered">–</b><span>rep wagered</span></div>
-          <div><b data-stat="games_this_week">–</b><span>games this week</span></div>              
+          <div>
+            <b data-stat="games_this_week">–</b><span>games this week</span>
+          </div>
         </div>
 
         <section class="lp-sec" id="lpHow">
@@ -494,19 +537,30 @@
           <ol class="lp-steps">
             <li>
               <h3>Sign up</h3>
-              <p>Use your @charlotte.edu email. Everyone starts with 1,000 rep.</p>
+              <p>
+                Use your @charlotte.edu email. Everyone starts with 1,000 rep.
+              </p>
             </li>
             <li>
               <h3>Pick a winner</h3>
-              <p>Browse the week's football and basketball games and choose a side.</p>
+              <p>
+                Browse the week's football and basketball games and choose a
+                side.
+              </p>
             </li>
             <li>
               <h3>Wager rep</h3>
-              <p>Right doubles your wager back. Wrong loses it. Ties are refunded.</p>
+              <p>
+                Underdogs pay more, favorites pay less. Wrong loses it. Ties are
+                refunded.
+              </p>
             </li>
             <li>
               <h3>Climb the board</h3>
-              <p>Games settle on their own. Watch your rank, record and badges grow.</p>
+              <p>
+                Games settle on their own. Watch your rank, record and badges
+                grow.
+              </p>
             </li>
           </ol>
         </section>
@@ -521,7 +575,11 @@
                 score. Switch to just the people you follow to settle the group
                 chat.
               </p>
-              <button type="button" class="btn btn-outline" data-go="leaderboard">
+              <button
+                type="button"
+                class="btn btn-outline"
+                data-go="leaderboard"
+              >
                 View leaderboard
               </button>
             </div>
@@ -540,9 +598,17 @@
               </button>
             </div>
             <div class="lp-visual lp-chat" aria-hidden="true">
-              <div class="msg theirs"><div class="msg-bubble">you taking Charlotte on Saturday?</div></div>
-              <div class="msg mine"><div class="msg-bubble">100 rep on it. that defense is legit</div></div>
-              <div class="msg theirs"><div class="msg-bubble">bold. I'm taking the other side</div></div>
+              <div class="msg theirs">
+                <div class="msg-bubble">you taking Charlotte on Saturday?</div>
+              </div>
+              <div class="msg mine">
+                <div class="msg-bubble">
+                  100 rep on it. that defense is legit
+                </div>
+              </div>
+              <div class="msg theirs">
+                <div class="msg-bubble">bold. I'm taking the other side</div>
+              </div>
               <div class="note">Achievement unlocked: Heating Up</div>
             </div>
           </div>
@@ -555,11 +621,15 @@
                 the community. Show your three favorites next to your name.
               </p>
             </div>
-            <div class="lp-visual lp-badges" id="lpBadges" aria-label="Some of the badges you can earn"></div>
+            <div
+              class="lp-visual lp-badges"
+              id="lpBadges"
+              aria-label="Some of the badges you can earn"
+            ></div>
           </div>
         </section>
 
-        <section class="lp-final">          
+        <section class="lp-final">
           <h2>Your claim is waiting</h2>
           <p class="lp-sub">Make your first pick before the next tip-off.</p>
           <button type="button" class="btn btn-gold lp-btn" id="lpJoin">
@@ -590,42 +660,45 @@
                 </button>
               </div>
             </div>
-          <form id="postForm" class="card" hidden>
-            <textarea
-              id="postBody"
-              placeholder="Share something with the exchange"
-              rows="3"
-            ></textarea>
-            <div id="postImagePreview" class="post-preview" hidden>
-              <img
-                id="postImageThumb"
-                alt="Preview of the photo you are about to post"
-              />
-              <button
-                type="button"
-                id="postImageRemove"
-                class="preview-remove"
-                aria-label="Remove photo"
-              >
-                ×
-              </button>
-            </div>
-            <div class="post-actions">
-              <button class="btn">Post</button>
-              <input
-                type="file"
-                id="postImage"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-                hidden
-              />
-              <button type="button" class="btn btn-outline" id="postImageBtn">
-                Add photo
-              </button>
-              <p class="rep-hint">Posts earn +5 rep (3 a day) · comments on others' posts +2 (10 a day) · each like you get +1 (20 a day)</p>
-            </div>
-          </form>
-          <p class="hint" id="postHint">Log in to write a post.</p>
-          <div id="postList"></div>
+            <form id="postForm" class="card" hidden>
+              <textarea
+                id="postBody"
+                placeholder="Share something with the exchange"
+                rows="3"
+              ></textarea>
+              <div id="postImagePreview" class="post-preview" hidden>
+                <img
+                  id="postImageThumb"
+                  alt="Preview of the photo you are about to post"
+                />
+                <button
+                  type="button"
+                  id="postImageRemove"
+                  class="preview-remove"
+                  aria-label="Remove photo"
+                >
+                  ×
+                </button>
+              </div>
+              <div class="post-actions">
+                <button class="btn">Post</button>
+                <input
+                  type="file"
+                  id="postImage"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  hidden
+                />
+                <button type="button" class="btn btn-outline" id="postImageBtn">
+                  Add photo
+                </button>
+                <p class="rep-hint">
+                  Posts earn +5 rep (3 a day) · comments on others' posts +2 (10
+                  a day) · each like you get +1 (20 a day)
+                </p>
+              </div>
+            </form>
+            <p class="hint" id="postHint">Log in to write a post.</p>
+            <div id="postList"></div>
           </div>
           <aside class="side-stack sticky-side" id="postsSide"></aside>
         </div>
@@ -812,7 +885,9 @@
                 stake any amount you have. One pick per game.
               </li>
               <li>
-                <b>Right?</b> You get your wager back twice: stake 100, get 200.
+                <b>Why does a ranked team pay more than expected?</b> The #
+                rankings are the AP poll. Payouts come from our own ratings,
+                which are based on game results.
               </li>
               <li><b>Wrong?</b> The wager is gone.</li>
               <li><b>Tie or cancelled game?</b> Your wager is refunded.</li>
@@ -826,14 +901,15 @@
             <h3>Example</h3>
             <div class="ex-row"><span>Starting balance</span><b>1,000</b></div>
             <div class="ex-row">
-              <span>Wager 100 on Charlotte</span><b class="l">−100</b>
+              <span>Wager 100 on Charlotte at 2.50×</span><b class="l">−100</b>
             </div>
             <div class="ex-row">
-              <span>Charlotte wins: wager back ×2</span><b class="w">+200</b>
+              <span>Charlotte wins: wager × 2.50</span><b class="w">+250</b>
             </div>
-            <div class="ex-row total"><span>New balance</span><b>1,100</b></div>
+            <div class="ex-row total"><span>New balance</span><b>1,150</b></div>
             <p class="meta">
-              If Charlotte had lost, the balance would stay at 900.
+              If Charlotte had lost, the balance would stay at 900. A favorite
+              at 1.40× would have paid back 140 (+40).
             </p>
           </div>
         </div>
@@ -1116,7 +1192,10 @@
             sport: "basketball",
             away_team: "Charlotte",
             home_team: "Opponent",
-            start_time: null
+            start_time: null,
+            home_chance: 0.6,
+            home_odds: 1.67,
+            away_odds: 2.5
           }
         ];
         let games = SAMPLE;
@@ -1135,9 +1214,9 @@
                 <span>${g.start_time ? fmtWhen(g.start_time) : "Sample game"}</span>
               </div>
               <div class="lp-teams">
-                <button type="button" class="lp-team" data-i="${i}" data-side="away" aria-pressed="false">${esc(g.away_team)}</button>
+                <button type="button" class="lp-team" data-i="${i}" data-side="away" aria-pressed="false">${esc(g.away_team)} <small>${oddsOf(g, "away").toFixed(2)}×</small></button>
                 <span>@</span>
-                <button type="button" class="lp-team" data-i="${i}" data-side="home" aria-pressed="false">${esc(g.home_team)}</button>
+                <button type="button" class="lp-team" data-i="${i}" data-side="home" aria-pressed="false">${esc(g.home_team)} <small>${oddsOf(g, "home").toFixed(2)}×</small></button>
               </div>
             </div>`
             )
@@ -1153,7 +1232,8 @@
             return;
           }
           const team = choice.game[`${choice.side}_team`];
-          out.innerHTML = `${esc(team)} · win <b class="w">+${wager}</b> · lose <b class="l">−${wager}</b> rep`;
+          const win = winFor(wager, oddsOf(choice.game, choice.side));
+          out.innerHTML = `${esc(team)} · win <b class="w">+${win}</b> · lose <b class="l">−${wager}</b> rep`;
           make.hidden = false;
           make.textContent = me
             ? "Make this pick"
