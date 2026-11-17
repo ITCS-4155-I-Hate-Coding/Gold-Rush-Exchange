@@ -24,7 +24,7 @@ def get_profile(user_id, recent_limit=RECENT_LIMIT, viewer_id=None):
             COUNT(*) FILTER (WHERE result = 'incorrect') AS incorrect,
             COUNT(*) FILTER (WHERE result = 'pending')   AS pending,
             COUNT(*) FILTER (WHERE result = 'void')      AS void,  -- refunded picks (ties, cancelled games)
-            COALESCE(SUM(points) FILTER (WHERE result = 'correct'), 0)   AS rep_gained,
+            COALESCE(SUM(to_win) FILTER (WHERE result = 'correct'), 0)   AS rep_gained,
             COALESCE(SUM(points) FILTER (WHERE result = 'incorrect'), 0) AS rep_lost
         FROM predictions
         WHERE user_id = %s
@@ -105,7 +105,7 @@ def get_profile_by_username(username, viewer_id=None):
 
 # the columns shown for each pick; games is LEFT JOINed so older picks without a game still show
 PICK_COLUMNS = (
-    "p.id, p.game, p.prediction_text, p.points, p.result, p.created_at, "
+    "p.id, p.game, p.prediction_text, p.points, p.odds, p.to_win, p.result, p.created_at, "
     "g.home_team, g.away_team, g.start_time, g.status, g.home_score, g.away_score"
 )
 PAST_LIMIT = 50
