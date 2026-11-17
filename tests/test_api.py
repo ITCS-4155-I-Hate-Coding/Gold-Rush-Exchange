@@ -278,4 +278,24 @@ check(r.status_code == 400, "a reply can't point at a comment on a different pos
 
 print("\nFAILURES:", fails)
 
+# ---------- odds ----------
+import OddsBackend as odds  # noqa: E402
+check(odds.odds_for(0.1) == 5.0 and odds.odds_for(0.999) == 1.01, "odds are capped at 5x and never below 1.01x")
+check(odds.odds_for(0.5) == 2.0 and odds.to_win(100, 1.29) == 29 and odds.to_win(10, 1.05) == 0, "fair odds and winnings round down")
+ratings, _ = odds.build_ratings([{"sport": "football", "home_team": "A", "away_team": "B", "start_time": now, "status": "final",
+                                   "home_score": 10, "away_score": 31, "home_rank": None, "away_rank": None,
+                                   "home_conference": "SEC", "away_conference": "SEC", "neutral_site": False}])
+check(ratings[("football", "B")] > 1500 > ratings[("football", "A")], "the winner takes rating points from the loser")
+
+c["OddsUser"] = register("OddsUser")
+og = game("odds1", "Kent State Golden Flashes", "Ohio Bobcats", 30)
+query("UPDATE games SET home_odds = 3.40, away_odds = 1.42, home_chance = 0.294 WHERE id = %s", (og,), fetch=False)
+r = pick("OddsUser", og, "home", 50)
+row = query("SELECT p.odds, p.to_win FROM predictions p JOIN users u ON u.id = p.user_id WHERE u.username = 'OddsUser'", fetchone=True)
+check(r.ok and float(row["odds"]) == 3.4 and row["to_win"] == 120, f"a pick locks in its odds ({row})")
+query("UPDATE games SET home_odds = 2.00, away_odds = 2.00 WHERE id = %s", (og,), fetch=False)
+query("UPDATE games SET status='final', start_time = start_time - interval '40 hours', home_score=27, away_score=20 WHERE id=%s", (og,), fetch=False)
+preds.auto_settle_finished_games()
+check(rep_of("OddsUser") == 1000 + 120, f"a correct pick pays the odds it was made at, not today's ({rep_of('OddsUser')})")
+
 sys.exit(1 if fails else 0)
