@@ -43,6 +43,23 @@ const thumbIcon = (dir) =>
 // a like/dislike count, or nothing when it is 0
 const countText = (n) => (n ? `<span>${n}</span>` : "");
 const initial = (u) => esc((u || "?").trim().charAt(0).toUpperCase() || "?");
+// odds: a side's payout multiplier (2 when a game has no odds yet) and what a wager wins with it
+const oddsOf = (g, side) => Number(g[`${side}_odds`]) || 2;
+const winFor = (points, odds) => Math.floor(points * (odds - 1) + 1e-9); // same as to_win in OddsBackend.py
+function chanceOf(g, side) {
+  if (g.home_chance == null) return null;
+  const home = Number(g.home_chance);
+  return Math.round((side === "home" ? home : 1 - home) * 100);
+}
+function oddsTag(g, side) {
+  const o = oddsOf(g, side);
+  const chance = chanceOf(g, side);
+  const title =
+    chance == null
+      ? "No odds yet: a correct pick pays 2x"
+      : `${chance}% chance to win · a correct pick pays ${o.toFixed(2)}x the wager`;
+  return `<b class="odds" title="${title}">${o.toFixed(2)}×</b>`;
+}
 
 // ACHIEVEMENTS AND BADGES
 // 1. loadCatalog() will fetch every achievements name, tier, and value once at startup
@@ -1172,7 +1189,9 @@ function openPredict(g) {
     `${g.sport[0].toUpperCase() + g.sport.slice(1)} · ${fmtWhen(g.start_time)}`;
   for (const side of ["away", "home"]) {
     const b = document.querySelector(`.pick-btn[data-pick="${side}"]`);
-    b.innerHTML = `<small>${side}</small>${teamLabel(g[`${side}_team`], g[`${side}_rank`])}`;
+    const chance = chanceOf(g, side);
+    b.innerHTML = `<small>${side}</small>${teamLabel(g[`${side}_team`], g[`${side}_rank`])}
+      <em class="pick-odds">pays ${oddsOf(g, side).toFixed(2)}×${chance == null ? "" : ` · ${chance}%`}</em>`;
     b.setAttribute("aria-pressed", "false");
   }
   $("predBalance").textContent = `Balance: ${me.reputation} rep`;
@@ -1189,8 +1208,13 @@ function updateOutcome() {
     const v = c.dataset.pts === "max" ? me.reputation : Number(c.dataset.pts);
     c.setAttribute("aria-pressed", String(n > 0 && n === v));
   });
+  if (!(n > 0)) return void ($("predOutcome").innerHTML = "");
+  if (!predPick)
+    return void ($("predOutcome").textContent =
+      "Pick a team to see what you'd win.");
+  const win = winFor(n, oddsOf(predGame, predPick));
   $("predOutcome").innerHTML =
-    n > 0 ? `Win <b class="w">+${n}</b> · Lose <b class="l">-${n}</b> rep` : "";
+    `Win <b class="w">+${win}</b> · Lose <b class="l">-${n}</b> rep`;
 }
 
 function showSuccessMessage(msg) {
@@ -1210,9 +1234,9 @@ document.querySelectorAll(".pick-btn").forEach((b) =>
   b.addEventListener("click", () => {
     predPick = b.dataset.pick;
     $("predError").textContent = "";
-    document
-      .querySelectorAll(".pick-btn")
-      .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    document.querySelectorAll(".pick-btn");
+    // .forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    updateOutcome();
   })
 );
 
@@ -1251,7 +1275,7 @@ $("predForm").addEventListener("submit", async (e) => {
     });
     $("predDialog").close();
     showSuccessMessage(
-      `Picked ${predGame[predPick + "_team"]} · ${points} rep`
+      `Picked ${predGame[predPick + "_team"]} · ${points} rep to win +${winFor(points, oddsOf(predGame, predPick))}`
     );
     await refresh(); // reloads balance, predictions list, and tile badges
   } catch (err) {
@@ -1367,8 +1391,8 @@ function renderGames() {
         <article class="tile">
           <div class="tile-top"><span class="sport ${esc(g.sport)}">${esc(g.sport)}</span></div>
           <div class="teams">
-            <div><i>AWAY</i><span>${teamLabel(g.away_team, g.away_rank)}</span></div>
-            <div><i>HOME</i><span>${teamLabel(g.home_team, g.home_rank)}</span></div>
+            <div><i>AWAY</i><span>${teamLabel(g.away_team, g.away_rank)}</span>${oddsTag(g, "away")}</div>
+            <div><i>HOME</i><span>${teamLabel(g.home_team, g.home_rank)}</span>${oddsTag(g, "home")}</div>
           </div>
           <div class="tile-foot">
             <span class="time">${new Date(g.start_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
@@ -1621,10 +1645,10 @@ function pickRow(p, who = false) {
   if (p.result === "void")
     note = `Refunded (tie or cancelled) · ${shortDate(p.created_at)}`;
   const amount = {
-    correct: `<b class="w">+${p.points}</b>`,
+    correct: `<b class="w">+${p.to_win ?? p.points}</b>`,
     incorrect: `<b class="l">−${p.points}</b>`,
     void: `${p.points} back`,
-    pending: `${p.points} at stake`
+    pending: `${p.points} → +${p.to_win ?? p.points}`
   }[p.result];
   return `
     <div class="prow ${esc(p.result)}">
