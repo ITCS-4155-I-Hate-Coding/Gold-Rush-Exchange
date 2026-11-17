@@ -176,7 +176,7 @@ pred AS (
         COUNT(*) AS total_preds,
         COUNT(*) FILTER (WHERE p.result = 'correct') AS correct,
         COUNT(*) FILTER (WHERE p.result IN ('correct', 'incorrect')) AS settled,
-            COALESCE(SUM(p.points) FILTER (WHERE p.result = 'correct'), 0) AS rep_won,
+            COALESCE(SUM(p.to_win) FILTER (WHERE p.result = 'correct'), 0) AS rep_won,
         COALESCE(MAX(p.points) FILTER (WHERE p.result = 'correct'), 0) AS biggest_win,
         COUNT(*) FILTER (WHERE p.result = 'correct' AND (
             (p.pick = 'home' AND g.home_rank IS NULL AND g.away_rank IS NOT NULL) OR
