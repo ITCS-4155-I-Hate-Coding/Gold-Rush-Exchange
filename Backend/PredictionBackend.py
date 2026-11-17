@@ -4,6 +4,7 @@ import psycopg2
 
 from db import query, transaction
 import AchievementBackend as achievements
+import OddsBackend as odds_model
 
 # picks on games with no result this many days after the start time get refunded
 VOID_AFTER_DAYS = 5
@@ -22,7 +23,8 @@ def create_prediction(user_id, game_id, pick, points):
     if points is None or points <= 0:
         return False, "Points wagered must be more than 0"
 
-    game = query("SELECT home_team, away_team, status, start_time FROM games WHERE id = %s", (game_id,), fetchone=True)
+    game = query("SELECT home_team, away_team, status, start_time, home_odds, away_odds FROM games WHERE id = %s",
+                 (game_id,), fetchone=True)
     if not game:
         return False, "That game does not exist"
 
@@ -31,6 +33,10 @@ def create_prediction(user_id, game_id, pick, points):
 
     display_game = f"{game['away_team']} @ {game['home_team']}"
     display_pick = game["home_team"] if pick == "home" else game["away_team"]
+
+    # the odds are locked in now. a game without odds yet pays double like before
+    odds = float(game[f"{pick}_odds"] or 2)
+    win = odds_model.to_win(points, odds)
 
     try:
         # checking for an existing pick, holding the wager and saving the pick all happen together
@@ -50,8 +56,9 @@ def create_prediction(user_id, game_id, pick, points):
 
             # no result value is given (it will be pending at first)
             tx.query(
-                "INSERT INTO predictions (user_id, game, prediction_text, points, game_id, pick) VALUES (%s, %s, %s, %s, %s, %s)",
-                (user_id, display_game, f"{display_pick} wins", points, game_id, pick),
+                "INSERT INTO predictions (user_id, game, prediction_text, points, game_id, pick, odds, to_win)"
+                " VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                (user_id, display_game, f"{display_pick} wins", points, game_id, pick, odds, win),
                 fetch=False,
             )
     except psycopg2.errors.UniqueViolation:
@@ -79,7 +86,7 @@ def _settle_one(prediction_id, result, payout):
 def auto_settle_finished_games():
     pending = query(
         """
-        SELECT p.id, p.user_id, p.pick, p.points, g.status, g.home_score, g.away_score,
+        SELECT p.id, p.user_id, p.pick, p.points, COALESCE(p.to_win, p.points) AS to_win, g.status, g.home_score, g.away_score,
                g.start_time < now() - make_interval(days => %s) AS stale
         FROM predictions p
         JOIN games g ON g.id = p.game_id
@@ -103,8 +110,8 @@ def auto_settle_finished_games():
         else:
             actual_winner = "home" if p["home_score"] > p["away_score"] else "away"
             if p["pick"] == actual_winner:
-                # the wager was already deducted when placed: a win returns it plus winnings (2x)
-                result, payout = "correct", p["points"] * 2
+                # the wager was already taken when the pick was made: a win returns it plus what it was set to win
+                result, payout = "correct", p["points"] + p["to_win"]
             else:
                 result, payout = "incorrect", 0
 
