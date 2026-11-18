@@ -2211,6 +2211,7 @@ function closeNotifPanel() {
 async function openNotifPanel() {
   const panel = $("notifPanel");
   panel.hidden = false;
+  panel.style.setProperty("--panel-top", `${$("notifBtn").getBoundingClientRect().bottom + 10}px`); // for narrow screens where the notification panel is pinned underneath the bell
   $("notifBtn").setAttribute("aria-expanded", "true");
   $("notifList").innerHTML = '<p class="hint">Loading…</p>';
   try {

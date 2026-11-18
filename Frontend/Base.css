@@ -2939,3 +2939,14 @@ main {
     sans-serif;
   color: var(--muted);
 }
+
+/* bell will move to the left of the header now */
+@media (max-width: 700px) {
+  .notif-panel {
+    position: fixed;
+    top: var(--panel-top, 8rem);
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+  }
+}
